@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>차트 연습</title>
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #131722; color: #d1d4dc; font-family: 'Segoe UI', sans-serif; font-size: 13px; height: 100vh; display: flex; flex-direction: column; }
+
+  /* 상단 컨트롤 */
+  #controls {
+    background: #1e222d;
+    border-bottom: 1px solid #2a2e39;
+    padding: 8px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  #controls input, #controls select {
+    background: #131722;
+    border: 1px solid #2a2e39;
+    color: #d1d4dc;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  #controls input { width: 90px; }
+  #controls select { width: 80px; }
+  #ticker-input { width: 100px; text-transform: uppercase; }
+
+  button {
+    background: #2962ff;
+    color: #fff;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.15s;
+  }
+  button:hover { background: #1e4fd8; }
+  button.secondary { background: #2a2e39; }
+  button.secondary:hover { background: #363b4e; }
+  button.danger { background: #e53935; }
+  button.danger:hover { background: #c62828; }
+  button.success { background: #26a69a; }
+  button.success:hover { background: #1d8078; }
+
+  .sep { width: 1px; height: 24px; background: #2a2e39; }
+  label { color: #787b86; font-size: 12px; }
+
+  /* 지표 토글 */
+  #indicator-bar {
+    background: #1e222d;
+    border-bottom: 1px solid #2a2e39;
+    padding: 6px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+  .toggle-btn {
+    background: #2a2e39;
+    color: #787b86;
+    border: 1px solid #2a2e39;
+    padding: 3px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.15s;
+  }
+  .toggle-btn.active { border-color: currentColor; }
+  .toggle-btn.ma5  { color: #f48024; }
+  .toggle-btn.ma20 { color: #26c6da; }
+  .toggle-btn.ma60 { color: #ab47bc; }
+  .toggle-btn.ma120{ color: #ef5350; }
+  .toggle-btn.ma200{ color: #66bb6a; }
+  .toggle-btn.bb   { color: #ffd54f; }
+  .toggle-btn.ichi { color: #80cbc4; }
+  .toggle-btn.vol  { color: #90a4ae; }
+  .toggle-btn.rsi  { color: #ff8a65; }
+  .toggle-btn.macd { color: #ce93d8; }
+
+  /* 메인 차트 영역 */
+  #chart-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  #main-chart { flex: 1; min-height: 0; }
+  #sub-chart-rsi  { height: 120px; border-top: 1px solid #2a2e39; display: none; }
+  #sub-chart-macd { height: 120px; border-top: 1px solid #2a2e39; display: none; }
+
+  /* 하단 연습 패널 */
+  #practice-bar {
+    background: #1e222d;
+    border-top: 1px solid #2a2e39;
+    padding: 8px 12px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  #practice-bar label { color: #787b86; }
+  #reveal-count { width: 60px; }
+  #status-msg { color: #787b86; font-size: 12px; margin-left: 8px; }
+
+  /* 오버레이 라인 (숨김 경계) */
+</style>
+</head>
+<body>
+
+<!-- 상단 컨트롤 -->
+<div id="controls">
+  <label>티커</label>
+  <input id="ticker-input" type="text" value="AAPL" placeholder="AAPL / 005930.KS" />
+
+  <label>기간</label>
+  <select id="period-select">
+    <option value="1mo">1개월</option>
+    <option value="3mo">3개월</option>
+    <option value="6mo">6개월</option>
+    <option value="1y" selected>1년</option>
+    <option value="2y">2년</option>
+    <option value="5y">5년</option>
+  </select>
+
+  <label>봉</label>
+  <select id="interval-select">
+    <option value="1d" selected>일봉</option>
+    <option value="1wk">주봉</option>
+    <option value="1mo">월봉</option>
+    <option value="1h">1시간</option>
+  </select>
+
+  <button id="load-btn">불러오기</button>
+  <div class="sep"></div>
+
+  <label>숨김 시작(%)</label>
+  <input id="hide-pct" type="number" value="80" min="10" max="95" style="width:70px"/>
+  <button id="practice-btn" class="secondary">연습 시작</button>
+</div>
+
+<!-- 지표 토글 -->
+<div id="indicator-bar">
+  <span style="color:#787b86;font-size:12px;margin-right:4px">지표:</span>
+  <button class="toggle-btn ma5"  data-key="ma5">MA5</button>
+  <button class="toggle-btn ma20" data-key="ma20">MA20</button>
+  <button class="toggle-btn ma60" data-key="ma60">MA60</button>
+  <button class="toggle-btn ma120" data-key="ma120">MA120</button>
+  <button class="toggle-btn ma200" data-key="ma200">MA200</button>
+  <button class="toggle-btn bb"   data-key="bb">볼린저</button>
+  <button class="toggle-btn ichi" data-key="ichi">일목</button>
+  <div class="sep"></div>
+  <button class="toggle-btn vol"  data-key="vol">거래량</button>
+  <button class="toggle-btn rsi"  data-key="rsi">RSI</button>
+  <button class="toggle-btn macd" data-key="macd">MACD</button>
+</div>
+
+<!-- 차트 영역 -->
+<div id="chart-wrapper">
+  <div id="main-chart"></div>
+  <div id="sub-chart-rsi"></div>
+  <div id="sub-chart-macd"></div>
+</div>
+
+<!-- 연습 패널 -->
+<div id="practice-bar">
+  <label>공개 봉 수</label>
+  <input id="reveal-count" type="number" value="5" min="1" max="100"/>
+  <button id="reveal-btn" class="success" disabled>다음 공개</button>
+  <button id="reveal-all-btn" class="danger" disabled>전체 공개</button>
+  <button id="reset-btn" class="secondary">초기화</button>
+  <span id="status-msg">먼저 데이터를 불러오세요.</span>
+</div>
+
+<script>
+// ─── 상태 ───────────────────────────────────────────────────────────────────
+let allData = null;          // API 응답 전체
+let revealedIdx = 0;         // 현재 공개된 캔들 인덱스 (연습모드)
+let practiceMode = false;
+let hideCutIdx = 0;
+
+// 활성 지표
+const active = {
+  ma5: false, ma20: true, ma60: true, ma120: false, ma200: false,
+  bb: false, ichi: false, vol: true, rsi: false, macd: false
+};
+
+// 차트 인스턴스
+let mainChart, rsiChart, macdChart;
+let candleSeries, volSeries;
+let maSeries = {};
+let bbSeries = {};
+let ichiSeries = {};
+let rsiSeries, macdLineSeries, macdSignalSeries, macdHistSeries;
+let rsiOb, rsiOs;         // 과매수/과매도 라인
+
+// ─── 초기화 ─────────────────────────────────────────────────────────────────
+function initCharts() {
+  const wrapper = document.getElementById('main-chart');
+  wrapper.innerHTML = '';
+  document.getElementById('sub-chart-rsi').innerHTML = '';
+  document.getElementById('sub-chart-macd').innerHTML = '';
+
+  const commonOpts = {
+    layout: { background: { color: '#131722' }, textColor: '#d1d4dc' },
+    grid: { vertLines: { color: '#1e222d' }, horzLines: { color: '#1e222d' } },
+    crosshair: { mode: 1 },
+    timeScale: { timeVisible: true, borderColor: '#2a2e39' },
+    rightPriceScale: { borderColor: '#2a2e39' },
+  };
+
+  mainChart = LightweightCharts.createChart(wrapper, {
+    ...commonOpts,
+    width: wrapper.clientWidth,
+    height: wrapper.clientHeight,
+  });
+
+  candleSeries = mainChart.addCandlestickSeries({
+    upColor: '#26a69a', downColor: '#ef5350',
+    borderUpColor: '#26a69a', borderDownColor: '#ef5350',
+    wickUpColor: '#26a69a', wickDownColor: '#ef5350',
+  });
+
+  // RSI 차트
+  const rsiEl = document.getElementById('sub-chart-rsi');
+  rsiChart = LightweightCharts.createChart(rsiEl, {
+    ...commonOpts,
+    width: rsiEl.clientWidth,
+    height: 120,
+  });
+  rsiSeries = rsiChart.addLineSeries({ color: '#ff8a65', lineWidth: 1 });
+  rsiOb = rsiChart.addLineSeries({ color: '#ef5350', lineWidth: 1, lineStyle: 2 });
+  rsiOs = rsiChart.addLineSeries({ color: '#26a69a', lineWidth: 1, lineStyle: 2 });
+
+  // MACD 차트
+  const macdEl = document.getElementById('sub-chart-macd');
+  macdChart = LightweightCharts.createChart(macdEl, {
+    ...commonOpts,
+    width: macdEl.clientWidth,
+    height: 120,
+  });
+  macdLineSeries   = macdChart.addLineSeries({ color: '#ce93d8', lineWidth: 1 });
+  macdSignalSeries = macdChart.addLineSeries({ color: '#ffeb3b', lineWidth: 1 });
+  macdHistSeries   = macdChart.addHistogramSeries({
+    color: '#26a69a',
+    priceFormat: { type: 'price', precision: 4 },
+  });
+
+  // 크로스헤어 동기화
+  syncCrosshair(mainChart, [rsiChart, macdChart]);
+  syncCrosshair(rsiChart, [mainChart, macdChart]);
+  syncCrosshair(macdChart, [mainChart, rsiChart]);
+
+  // 리사이즈
+  new ResizeObserver(() => {
+    mainChart.applyOptions({ width: wrapper.clientWidth, height: wrapper.clientHeight });
+    rsiChart.applyOptions({ width: rsiEl.clientWidth });
+    macdChart.applyOptions({ width: macdEl.clientWidth });
+  }).observe(wrapper);
+}
+
+function syncCrosshair(source, targets) {
+  source.subscribeCrosshairMove(p => {
+    if (!p.time) return;
+    targets.forEach(t => {
+      try { t.setCrosshairPosition(p.point ? p.point.x : 0, p.point ? p.point.y : 0, t.series ? t.series[0] : null); } catch(e){}
+    });
+  });
+}
+
+// ─── 데이터 불러오기 ─────────────────────────────────────────────────────────
+async function loadData() {
+  const ticker = document.getElementById('ticker-input').value.trim().toUpperCase();
+  const period   = document.getElementById('period-select').value;
+  const interval = document.getElementById('interval-select').value;
+  setStatus('불러오는 중...');
+
+  try {
+    const res = await fetch(`/api/chart?ticker=${ticker}&period=${period}&interval=${interval}`);
+    const data = await res.json();
+    if (data.error) { setStatus('오류: ' + data.error); return; }
+
+    allData = data;
+    practiceMode = false;
+    revealedIdx = data.candles.length;
+    renderAll(data.candles.length);
+    setStatus(`${data.name} · ${data.candles.length}개 봉`);
+    document.getElementById('reveal-btn').disabled = true;
+    document.getElementById('reveal-all-btn').disabled = true;
+  } catch(e) {
+    setStatus('네트워크 오류: ' + e.message);
+  }
+}
+
+// ─── 전체 렌더 ───────────────────────────────────────────────────────────────
+function renderAll(upTo) {
+  if (!allData) return;
+  const candles = allData.candles.slice(0, upTo);
+  const times = new Set(candles.map(c => c.time));
+
+  candleSeries.setData(candles);
+
+  // 거래량 (candleSeries 위에 히스토그램)
+  if (volSeries) { mainChart.removeSeries(volSeries); volSeries = null; }
+  if (active.vol) {
+    volSeries = mainChart.addHistogramSeries({
+      priceFormat: { type: 'volume' },
+      priceScaleId: 'vol',
+      color: '#434651',
+    });
+    mainChart.priceScale('vol').applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
+    volSeries.setData(candles.map(c => ({
+      time: c.time,
+      value: c.volume,
+      color: c.close >= c.open ? '#26a69a55' : '#ef535055',
+    })));
+  }
+
+  // MA
+  Object.keys(maSeries).forEach(k => { mainChart.removeSeries(maSeries[k]); });
+  maSeries = {};
+  const maColors = { '5':'#f48024','20':'#26c6da','60':'#ab47bc','120':'#ef5350','200':'#66bb6a' };
+  ['5','20','60','120','200'].forEach(p => {
+    if (!active['ma'+p]) return;
+    const s = mainChart.addLineSeries({ color: maColors[p], lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
+    s.setData(allData.mas[p].filter(d => d.time <= candles[candles.length-1]?.time));
+    maSeries[p] = s;
+  });
+
+  // 볼린저
+  Object.keys(bbSeries).forEach(k => { mainChart.removeSeries(bbSeries[k]); });
+  bbSeries = {};
+  if (active.bb) {
+    const last = candles[candles.length-1]?.time;
+    bbSeries.upper = mainChart.addLineSeries({ color: '#ffd54f', lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
+    bbSeries.mid   = mainChart.addLineSeries({ color: '#ffd54f88', lineWidth: 1, lastValueVisible: false, priceLineVisible: false, lineStyle: 2 });
+    bbSeries.lower = mainChart.addLineSeries({ color: '#ffd54f', lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
+    bbSeries.upper.setData(allData.bollinger.upper.filter(d => d.time <= last));
+    bbSeries.mid.setData(allData.bollinger.mid.filter(d => d.time <= last));
+    bbSeries.lower.setData(allData.bollinger.lower.filter(d => d.time <= last));
+  }
+
+  // 일목균형표
+  Object.keys(ichiSeries).forEach(k => { mainChart.removeSeries(ichiSeries[k]); });
+  ichiSeries = {};
+  if (active.ichi) {
+    const last = candles[candles.length-1]?.time;
+    const ichiCfg = [
+      ['tenkan', '#ef5350'],
+      ['kijun',  '#26a69a'],
+      ['senkou_a','#80cbc488'],
+      ['senkou_b','#ef535088'],
+      ['chikou', '#ba68c8'],
+    ];
+    ichiCfg.forEach(([k, color]) => {
+      ichiSeries[k] = mainChart.addLineSeries({ color, lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
+      ichiSeries[k].setData(allData.ichimoku[k].filter(d => d.time <= last));
+    });
+  }
+
+  // RSI
+  const rsiEl = document.getElementById('sub-chart-rsi');
+  if (active.rsi) {
+    rsiEl.style.display = 'block';
+    const last = candles[candles.length-1]?.time;
+    const rsiFiltered = allData.rsi.filter(d => d.time <= last);
+    rsiSeries.setData(rsiFiltered);
+    const len = rsiFiltered.length;
+    if (len > 0) {
+      const t1 = rsiFiltered[0].time, t2 = rsiFiltered[len-1].time;
+      rsiOb.setData([{time: t1, value:70},{time: t2, value:70}]);
+      rsiOs.setData([{time: t1, value:30},{time: t2, value:30}]);
+    }
+  } else {
+    rsiEl.style.display = 'none';
+  }
+
+  // MACD
+  const macdEl = document.getElementById('sub-chart-macd');
+  if (active.macd) {
+    macdEl.style.display = 'block';
+    const last = candles[candles.length-1]?.time;
+    macdLineSeries.setData(allData.macd.macd.filter(d => d.time <= last));
+    macdSignalSeries.setData(allData.macd.signal.filter(d => d.time <= last));
+    macdHistSeries.setData(allData.macd.histogram.filter(d => d.time <= last).map(d => ({
+      ...d,
+      color: d.value >= 0 ? '#26a69a' : '#ef5350',
+    })));
+  } else {
+    macdEl.style.display = 'none';
+  }
+}
+
+// ─── 연습 모드 ───────────────────────────────────────────────────────────────
+function startPractice() {
+  if (!allData) { setStatus('먼저 데이터를 불러오세요.'); return; }
+  const pct = parseInt(document.getElementById('hide-pct').value) || 80;
+  hideCutIdx = Math.floor(allData.candles.length * pct / 100);
+  revealedIdx = hideCutIdx;
+  practiceMode = true;
+
+  renderAll(revealedIdx);
+  mainChart.timeScale().fitContent();
+  setStatus(`연습 모드: ${revealedIdx}봉 표시 / ${allData.candles.length}봉 중 (${pct}%)`);
+  document.getElementById('reveal-btn').disabled = false;
+  document.getElementById('reveal-all-btn').disabled = false;
+}
+
+function revealNext() {
+  if (!practiceMode || !allData) return;
+  const n = parseInt(document.getElementById('reveal-count').value) || 5;
+  revealedIdx = Math.min(revealedIdx + n, allData.candles.length);
+  renderAll(revealedIdx);
+  mainChart.timeScale().scrollToRealTime();
+  setStatus(`${revealedIdx} / ${allData.candles.length}봉 공개`);
+  if (revealedIdx >= allData.candles.length) {
+    setStatus('전체 공개 완료');
+    document.getElementById('reveal-btn').disabled = true;
+  }
+}
+
+function revealAll() {
+  if (!allData) return;
+  revealedIdx = allData.candles.length;
+  renderAll(revealedIdx);
+  mainChart.timeScale().fitContent();
+  setStatus('전체 공개 완료');
+  document.getElementById('reveal-btn').disabled = true;
+  document.getElementById('reveal-all-btn').disabled = true;
+}
+
+function resetPractice() {
+  if (!allData) return;
+  practiceMode = false;
+  revealedIdx = allData.candles.length;
+  renderAll(revealedIdx);
+  mainChart.timeScale().fitContent();
+  setStatus(`${allData.name} · ${allData.candles.length}개 봉`);
+  document.getElementById('reveal-btn').disabled = true;
+  document.getElementById('reveal-all-btn').disabled = true;
+}
+
+// ─── 지표 토글 ───────────────────────────────────────────────────────────────
+document.querySelectorAll('.toggle-btn').forEach(btn => {
+  const key = btn.dataset.key;
+  if (active[key]) btn.classList.add('active');
+  btn.addEventListener('click', () => {
+    active[key] = !active[key];
+    btn.classList.toggle('active', active[key]);
+    if (allData) renderAll(revealedIdx);
+  });
+});
+
+// ─── 이벤트 바인딩 ───────────────────────────────────────────────────────────
+document.getElementById('load-btn').addEventListener('click', loadData);
+document.getElementById('ticker-input').addEventListener('keydown', e => { if (e.key === 'Enter') loadData(); });
+document.getElementById('practice-btn').addEventListener('click', startPractice);
+document.getElementById('reveal-btn').addEventListener('click', revealNext);
+document.getElementById('reveal-all-btn').addEventListener('click', revealAll);
+document.getElementById('reset-btn').addEventListener('click', resetPractice);
+
+function setStatus(msg) { document.getElementById('status-msg').textContent = msg; }
+
+// ─── 시작 ────────────────────────────────────────────────────────────────────
+initCharts();
+loadData();
+</script>
+</body>
+</html>

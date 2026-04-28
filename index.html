@@ -258,6 +258,14 @@ input[type=color]{width:26px;height:26px;padding:1px;border-radius:3px;border:1p
     <span id="practice-info"></span>
     <span class="spacer"></span>
     <span id="practice-status"></span>
+    <select id="reveal-n" style="width:60px;font-size:12px;padding:3px 5px;background:#2a2e39;color:#d1d4dc;border:1px solid #2a2e39;border-radius:4px">
+      <option value="5">5봉</option>
+      <option value="10">10봉</option>
+      <option value="15">15봉</option>
+      <option value="20">20봉</option>
+      <option value="30">30봉</option>
+      <option value="50">50봉</option>
+    </select>
     <button class="btn-ok"     id="btn-reveal"     style="font-size:12px;padding:5px 11px" disabled onclick="handleReveal()">다음 공개</button>
     <button class="btn-danger" id="btn-end-session" style="font-size:12px;padding:5px 11px" onclick="showFinalModal()">세션 종료</button>
   </div>
@@ -646,25 +654,29 @@ async function setRandomBlind() {
   const ticker = document.getElementById('s-ticker').value.trim().toUpperCase();
   if (!ticker) { document.getElementById('setup-err').textContent = '티커를 먼저 입력하세요'; return; }
 
-  // pick random end date: between 3 months ago and 10 years ago
-  const now    = Date.now();
-  const minAgo = 90   * 86400000;       // 3개월
-  const maxAgo = 10 * 365 * 86400000;   // 10년
-  const endTs  = now - minAgo - Math.random() * (maxAgo - minAgo);
-  const startTs = endTs - 2 * 365 * 86400000;  // 2년치
+  const period = document.getElementById('s-period').value;
+  const start  = document.getElementById('s-start').value;
 
-  const toDateStr = ts => new Date(ts).toISOString().slice(0, 10);
-  document.getElementById('s-start').value  = toDateStr(startTs);
-  document.getElementById('s-end').value    = toDateStr(endTs);
-  document.getElementById('s-period').value = '';
+  // period/range가 설정되지 않은 경우에만 랜덤 2년 구간 선택
+  if (!period && !start) {
+    const now     = Date.now();
+    const minAgo  = 90  * 86400000;
+    const maxAgo  = 10 * 365 * 86400000;
+    const endTs   = now - minAgo - Math.random() * (maxAgo - minAgo);
+    const startTs = endTs - 2 * 365 * 86400000;
+    const toStr   = ts => new Date(ts).toISOString().slice(0, 10);
+    document.getElementById('s-start').value  = toStr(startTs);
+    document.getElementById('s-end').value    = toStr(endTs);
+    document.getElementById('s-period').value = '';
+  }
 
-  document.getElementById('preview-info').textContent = '랜덤 기간 불러오는 중...';
+  document.getElementById('preview-info').textContent = '데이터 불러오는 중...';
   await previewData();
 
   if (!setupData) return;
-  // set blind at 70~90% of data
+  // 전체 데이터 중 60~90% 지점에서 랜덤 블라인드 시작
   const n   = setupData.candles.length;
-  const idx = Math.floor(n * (0.70 + Math.random() * 0.20));
+  const idx = Math.floor(n * (0.60 + Math.random() * 0.30));
   const dt  = new Date(setupData.candles[idx].time * 1000);
   document.getElementById('s-blind-year').value  = String(dt.getFullYear());
   document.getElementById('s-blind-month').value = String(dt.getMonth() + 1).padStart(2, '0');
@@ -755,7 +767,7 @@ function submitPreEval() {
   if (!trend || !conf) { alert('추세와 확신도를 선택하세요'); return; }
   evalState = { trend, conf, note: document.getElementById('pre-note').value };
   // do reveal
-  const n = parseInt(document.getElementById('btn-reveal').dataset.n || '5') || 5;
+  const n = parseInt(document.getElementById('reveal-n').value) || 5;
   revealedIdx = Math.min(revealedIdx + n, curSession.total);
   // track reveal boundary for background shading
   const revealEndCandle = curSession.candles[revealedIdx - 1];
@@ -801,8 +813,6 @@ document.querySelectorAll('[data-post]').forEach(btn => {
   });
 });
 
-// 공개 봉 수 — 헤더에서 변경 가능하게
-document.getElementById('btn-reveal').dataset.n = '5';
 
 function showFinalModal() {
   const { correct, wrong, ambig } = curSession;
@@ -1058,7 +1068,7 @@ function setupResizeHandles() {
   const onMove = (clientY) => {
     if (!resizeState) return;
     const delta = clientY - resizeState.startY;
-    const newH  = Math.max(60, resizeState.startH + delta);
+    const newH  = Math.max(60, resizeState.startH - delta);
     resizeState.tgt.style.height = newH + 'px';
     const chartEl = resizeState.tgt.querySelector('[id^="chart-"]');
     if (chartEl) {

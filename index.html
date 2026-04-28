@@ -688,27 +688,51 @@ async function setRandomBlind() {
   const ticker = document.getElementById('s-ticker').value.trim().toUpperCase();
   if (!ticker) { document.getElementById('setup-err').textContent = '티커를 먼저 입력하세요'; return; }
 
-  const period = document.getElementById('s-period').value;
-  const start  = document.getElementById('s-start').value;
+  const toStr = ts => new Date(ts).toISOString().slice(0, 10);
+  const interval = document.getElementById('s-interval').value;
 
-  // period/range가 설정되지 않은 경우에만 랜덤 2년 구간 선택
-  if (!period && !start) {
-    const now     = Date.now();
-    const minAgo  = 90  * 86400000;
-    const maxAgo  = 10 * 365 * 86400000;
-    const endTs   = now - minAgo - Math.random() * (maxAgo - minAgo);
-    const startTs = endTs - 2 * 365 * 86400000;
-    const toStr   = ts => new Date(ts).toISOString().slice(0, 10);
-    document.getElementById('s-start').value  = toStr(startTs);
-    document.getElementById('s-end').value    = toStr(endTs);
-    document.getElementById('s-period').value = '';
+  // 1) 전체 데이터 범위를 먼저 조회
+  document.getElementById('preview-info').textContent = '전체 기간 조회 중...';
+  document.getElementById('setup-err').textContent = '';
+  try {
+    const meta = await fetch(`/api/chart?ticker=${ticker}&interval=${interval}&period=max`).then(r => r.json());
+    if (!meta || meta.error || !meta.candles?.length) {
+      document.getElementById('setup-err').textContent = meta?.error || '데이터 없음';
+      return;
+    }
+    const allCandles = meta.candles;
+    const firstTs = allCandles[0].time * 1000;
+    const lastTs  = allCandles[allCandles.length - 1].time * 1000;
+    const twoYears = 2 * 365 * 24 * 3600 * 1000;
+    const threeMonthsMs = 90 * 24 * 3600 * 1000;
+
+    // 랜덤 구간: 전체 범위 내에서 2년 윈도우를 임의로 배치
+    // endTs 범위: [firstTs + 2년, lastTs - 3개월] (너무 최근은 제외)
+    const minEnd = firstTs + twoYears;
+    const maxEnd = lastTs - threeMonthsMs;
+    if (maxEnd <= minEnd) {
+      // 전체 기간이 2년 미만이면 전체 사용
+      document.getElementById('s-period').value = 'max';
+      document.getElementById('s-start').value = '';
+      document.getElementById('s-end').value   = '';
+    } else {
+      const endTs   = minEnd + Math.random() * (maxEnd - minEnd);
+      const startTs = endTs - twoYears;
+      document.getElementById('s-start').value  = toStr(startTs);
+      document.getElementById('s-end').value    = toStr(endTs);
+      document.getElementById('s-period').value = '';
+    }
+  } catch(e) {
+    document.getElementById('setup-err').textContent = '조회 오류: ' + e.message;
+    return;
   }
 
-  document.getElementById('preview-info').textContent = '데이터 불러오는 중...';
+  // 2) 해당 구간 데이터 로드
+  document.getElementById('preview-info').textContent = '선택 구간 불러오는 중...';
   await previewData();
-
   if (!setupData) return;
-  // 전체 데이터 중 60~90% 지점에서 랜덤 블라인드 시작
+
+  // 3) 로드된 데이터의 60~90% 지점에 블라인드
   const n   = setupData.candles.length;
   const idx = Math.floor(n * (0.60 + Math.random() * 0.30));
   const dt  = new Date(setupData.candles[idx].time * 1000);

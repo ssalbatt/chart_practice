@@ -1021,9 +1021,9 @@ function initCharts() {
   obvChart   = mkChart('chart-obv');
 
   candleSeries = mainChart.addCandlestickSeries({
-    upColor:'#26a69a', downColor:'#ef5350',
-    borderUpColor:'#26a69a', borderDownColor:'#ef5350',
-    wickUpColor:'#26a69a', wickDownColor:'#ef5350',
+    upColor:'#f23645', downColor:'#2962ff',
+    borderUpColor:'#f23645', borderDownColor:'#2962ff',
+    wickUpColor:'#f23645', wickDownColor:'#2962ff',
   });
 
   rsiLine = rsiChart.addLineSeries({ color:'#ff8a65', lineWidth:1, title:'RSI', lastValueVisible:true });
@@ -1048,18 +1048,11 @@ function initCharts() {
 }
 
 function syncTime(charts) {
-  let _syncing = false;
-  charts.forEach(src => {
-    src.timeScale().subscribeVisibleLogicalRangeChange(() => {
-      if (_syncing || _syncPaused) return;
-      const range = src.timeScale().getVisibleRange();
-      if (!range) return;
-      _syncing = true;
-      charts.forEach(tgt => {
-        if (tgt !== src) try { tgt.timeScale().setVisibleRange(range); } catch(e) {}
-      });
-      _syncing = false;
-    });
+  // one-way: main chart → all subcharts (avoids feedback loops)
+  const [main, ...subs] = charts;
+  main.timeScale().subscribeVisibleLogicalRangeChange(range => {
+    if (_syncPaused || !range) return;
+    subs.forEach(tgt => { try { tgt.timeScale().setVisibleLogicalRange(range); } catch(e) {} });
   });
 }
 
@@ -1136,7 +1129,7 @@ function renderAll(upTo) {
   if (active.vol) {
     volSeries = mainChart.addHistogramSeries({ priceFormat:{type:'volume'}, priceScaleId:'vol', lastValueVisible:false });
     mainChart.priceScale('vol').applyOptions({ scaleMargins:{top:0.85,bottom:0} });
-    volSeries.setData(candles.map(c => ({ time:c.time, value:c.volume, color: c.close>=c.open?'#26a69a44':'#ef535044' })));
+    volSeries.setData(candles.map(c => ({ time:c.time, value:c.volume, color: c.close>=c.open?'#f2364544':'#2962ff44' })));
   }
 
   // MA
@@ -1199,7 +1192,7 @@ function renderAll(upTo) {
     const mac = computeMACD(d.candles);
     macdLine.setData(clip(mac.macd, maxTime));
     macdSig.setData(clip(mac.signal, maxTime));
-    macdHist.setData(clip(mac.hist, maxTime).map(v => ({ ...v, color:v.value>=0?'#26a69a':'#ef5350' })));
+    macdHist.setData(clip(mac.hist, maxTime).map(v => ({ ...v, color:v.value>=0?'#f23645':'#2962ff' })));
     macdChart.applyOptions({ width: document.getElementById('chart-macd').clientWidth, height: subMacd.offsetHeight });
   }
 

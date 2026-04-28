@@ -1178,9 +1178,8 @@ function renderAll(upTo) {
   if (active.rsi && !subRsi.style.height) subRsi.style.height = '100px';
   subRsi.style.display = active.rsi ? 'block' : 'none';
   if (active.rsi) {
-    const rsiData = clip(computeRSI(d.candles), maxTime);
-    rsiLine.setData(rsiData);
-    setLevel(rsiOb, rsiOs, rsiData, 70, 30);
+    rsiLine.setData(padToStart(clip(computeRSI(d.candles), maxTime), candles));
+    setLevel(rsiOb, rsiOs, candles, 70, 30);
     rsiChart.applyOptions({ width: document.getElementById('chart-rsi').clientWidth, height: subRsi.offsetHeight });
   }
 
@@ -1190,9 +1189,10 @@ function renderAll(upTo) {
   subMacd.style.display = active.macd ? 'block' : 'none';
   if (active.macd) {
     const mac = computeMACD(d.candles);
-    macdLine.setData(clip(mac.macd, maxTime));
-    macdSig.setData(clip(mac.signal, maxTime));
-    macdHist.setData(clip(mac.hist, maxTime).map(v => ({ ...v, color:v.value>=0?'#f23645':'#2962ff' })));
+    macdLine.setData(padToStart(clip(mac.macd, maxTime), candles));
+    macdSig.setData(padToStart(clip(mac.signal, maxTime), candles));
+    macdHist.setData(padToStart(clip(mac.hist, maxTime), candles)
+      .map(v => ({ ...v, color: v.value == null ? 'transparent' : v.value >= 0 ? '#f23645' : '#2962ff' })));
     macdChart.applyOptions({ width: document.getElementById('chart-macd').clientWidth, height: subMacd.offsetHeight });
   }
 
@@ -1202,9 +1202,9 @@ function renderAll(upTo) {
   subStoch.style.display = active.stoch ? 'block' : 'none';
   if (active.stoch) {
     const st = computeStoch(d.candles);
-    stochK.setData(clip(st.k, maxTime));
-    stochD.setData(clip(st.d, maxTime));
-    setLevel(stochOb, stochOs, clip(st.k, maxTime), 80, 20);
+    stochK.setData(padToStart(clip(st.k, maxTime), candles));
+    stochD.setData(padToStart(clip(st.d, maxTime), candles));
+    setLevel(stochOb, stochOs, candles, 80, 20);
     stochChart.applyOptions({ width: document.getElementById('chart-stoch').clientWidth, height: subStoch.offsetHeight });
   }
 
@@ -1222,9 +1222,20 @@ function renderAll(upTo) {
 }
 
 function clip(arr, maxTime) { return arr.filter(d => d.time <= maxTime); }
-function setLevel(s1, s2, data, v1, v2) {
-  if (!data.length) return;
-  const t1 = data[0].time, t2 = data[data.length-1].time;
+
+// pad indicator data with nulls so it starts at the same time as candles
+function padToStart(data, candles) {
+  if (!data.length || !candles.length) return data;
+  const firstDataTime = data[0].time;
+  const padding = candles
+    .filter(c => c.time < firstDataTime)
+    .map(c => ({ time: c.time, value: null }));
+  return padding.length ? [...padding, ...data] : data;
+}
+
+function setLevel(s1, s2, candles, v1, v2) {
+  if (!candles.length) return;
+  const t1 = candles[0].time, t2 = candles[candles.length-1].time;
   s1.setData([{time:t1,value:v1},{time:t2,value:v1}]);
   s2.setData([{time:t1,value:v2},{time:t2,value:v2}]);
 }

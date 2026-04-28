@@ -465,6 +465,9 @@ let maSeries = {}, bbSeries = {}, ichiSeries = {};
 let rsiLine, rsiOb, rsiOs, macdLine, macdSig, macdHist;
 let stochK, stochD, stochOb, stochOs, obvLine;
 
+// sync pause flag — suppresses timescale sync during renderAll
+let _syncPaused = false;
+
 // drawing
 let drawMode  = 'pointer';
 let drawColor = '#f4c542';
@@ -1047,11 +1050,13 @@ function initCharts() {
 function syncTime(charts) {
   let _syncing = false;
   charts.forEach(src => {
-    src.timeScale().subscribeVisibleLogicalRangeChange(range => {
-      if (_syncing || !range) return;
+    src.timeScale().subscribeVisibleLogicalRangeChange(() => {
+      if (_syncing || _syncPaused) return;
+      const range = src.timeScale().getVisibleRange();
+      if (!range) return;
       _syncing = true;
       charts.forEach(tgt => {
-        if (tgt !== src) try { tgt.timeScale().setVisibleLogicalRange(range); } catch(e) {}
+        if (tgt !== src) try { tgt.timeScale().setVisibleRange(range); } catch(e) {}
       });
       _syncing = false;
     });
@@ -1117,6 +1122,7 @@ function setupResizeHandles() {
 
 // ── Render all ──
 function renderAll(upTo) {
+  _syncPaused = true;
   if (!curSession?.allData || !candleSeries) return;
   const d      = curSession.allData;
   const candles = d.candles.slice(0, upTo);
@@ -1218,6 +1224,7 @@ function renderAll(upTo) {
     obvChart.applyOptions({ width: document.getElementById('chart-obv').clientWidth, height: subObv.offsetHeight });
   }
 
+  _syncPaused = false;
   renderDrawings();
 }
 
@@ -1598,8 +1605,10 @@ document.querySelectorAll('.tog').forEach(btn => {
     btn.classList.toggle('on', active[k]);
     if (curSession) {
       const range = mainChart?.timeScale().getVisibleLogicalRange();
+      _syncPaused = true;
       renderAll(revealedIdx);
-      if (range) requestAnimationFrame(() => mainChart?.timeScale().setVisibleLogicalRange(range));
+      _syncPaused = false;
+      if (range) mainChart?.timeScale().setVisibleLogicalRange(range);
     }
   });
 });

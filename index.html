@@ -724,8 +724,9 @@ async function startSession() {
   drawings    = [];
   hideTime    = curSession.candles[hide_idx - 1]?.time ?? null;
   revealTimes = [];
+  showPage('practice');
   navigate('#practice');
-  initPractice();
+  requestAnimationFrame(initPractice);
 }
 
 // ═══════════════════════════════════════════════
@@ -740,7 +741,14 @@ function initPractice() {
   document.getElementById('btn-reveal').disabled = false;
   initCharts();
   renderAll(revealedIdx);
-  mainChart.timeScale().fitContent();
+  // fit chart to show exactly from first candle to last revealed candle
+  const first = curSession.candles[0];
+  const last  = curSession.candles[revealedIdx - 1];
+  if (first && last) {
+    mainChart.timeScale().setVisibleRange({ from: first.time, to: last.time });
+  } else {
+    mainChart.timeScale().fitContent();
+  }
 }
 
 function updatePracticeStatus() {
@@ -947,8 +955,9 @@ async function resumeSession(id) {
   drawings    = [];
   hideTime    = curSession.candles[curSession.hide_idx - 1]?.time ?? null;
   revealTimes = s.reveals.map(r => curSession.candles[r.shown - 1]?.time).filter(Boolean);
+  showPage('practice');
   navigate('#practice');
-  initPractice();
+  requestAnimationFrame(initPractice);
 }
 
 // ═══════════════════════════════════════════════
@@ -1038,15 +1047,12 @@ function initCharts() {
 function syncTime(charts) {
   let _syncing = false;
   charts.forEach(src => {
-    src.timeScale().subscribeVisibleLogicalRangeChange(() => {
-      if (_syncing) return;
+    src.timeScale().subscribeVisibleLogicalRangeChange(range => {
+      if (_syncing || !range) return;
       _syncing = true;
-      const range = src.timeScale().getVisibleRange();
-      if (range) {
-        charts.forEach(tgt => {
-          if (tgt !== src) try { tgt.timeScale().setVisibleRange(range); } catch(e) {}
-        });
-      }
+      charts.forEach(tgt => {
+        if (tgt !== src) try { tgt.timeScale().setVisibleLogicalRange(range); } catch(e) {}
+      });
       _syncing = false;
     });
   });
@@ -1170,6 +1176,7 @@ function renderAll(upTo) {
 
   // RSI
   const subRsi = document.getElementById('sub-rsi');
+  if (active.rsi && !subRsi.style.height) subRsi.style.height = '100px';
   subRsi.style.display = active.rsi ? 'block' : 'none';
   if (active.rsi) {
     const rsiData = clip(computeRSI(d.candles), maxTime);
@@ -1180,6 +1187,7 @@ function renderAll(upTo) {
 
   // MACD
   const subMacd = document.getElementById('sub-macd');
+  if (active.macd && !subMacd.style.height) subMacd.style.height = '100px';
   subMacd.style.display = active.macd ? 'block' : 'none';
   if (active.macd) {
     const mac = computeMACD(d.candles);
@@ -1191,6 +1199,7 @@ function renderAll(upTo) {
 
   // Stochastic
   const subStoch = document.getElementById('sub-stoch');
+  if (active.stoch && !subStoch.style.height) subStoch.style.height = '100px';
   subStoch.style.display = active.stoch ? 'block' : 'none';
   if (active.stoch) {
     const st = computeStoch(d.candles);
@@ -1202,6 +1211,7 @@ function renderAll(upTo) {
 
   // OBV
   const subObv = document.getElementById('sub-obv');
+  if (active.obv && !subObv.style.height) subObv.style.height = '100px';
   subObv.style.display = active.obv ? 'block' : 'none';
   if (active.obv) {
     obvLine.setData(clip(computeOBV(d.candles), maxTime));

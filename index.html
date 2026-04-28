@@ -195,6 +195,7 @@ input[type=color]{width:26px;height:26px;padding:1px;border-radius:3px;border:1p
         <label>티커 (예: AAPL, 005930.KS)</label>
         <div class="inline-row">
           <input id="s-ticker" type="text" style="width:130px;text-transform:uppercase" placeholder="AAPL">
+          <button class="btn-ghost" onclick="setRandomTicker()">🎲 랜덤</button>
           <button class="btn-ghost" onclick="previewData()">데이터 확인</button>
         </div>
       </div>
@@ -660,6 +661,27 @@ async function previewData() {
   } catch(e) {
     document.getElementById('preview-info').textContent = '오류: ' + e.message;
   }
+}
+
+const RANDOM_TICKERS = [
+  // 미국 대형주
+  'AAPL','MSFT','GOOGL','AMZN','NVDA','META','TSLA','JPM','V','UNH',
+  'XOM','JNJ','WMT','MA','PG','HD','CVX','MRK','ABBV','LLY',
+  'BAC','KO','PEP','AVGO','COST','TMO','MCD','ABT','ACN','NKE',
+  // 미국 ETF
+  'SPY','QQQ','IWM','DIA','VTI','GLD','TLT','SOXS','SOXL','ARKK',
+  // 한국 주요주
+  '005930.KS','000660.KS','035420.KS','005380.KS','051910.KS',
+  '006400.KS','035720.KS','028260.KS','105560.KS','055550.KS',
+  '003550.KS','066570.KS','207940.KS','000270.KS','096770.KS',
+];
+
+function setRandomTicker() {
+  const t = RANDOM_TICKERS[Math.floor(Math.random() * RANDOM_TICKERS.length)];
+  document.getElementById('s-ticker').value = t;
+  setupData = null;
+  document.getElementById('preview-info').textContent = `${t} 선택됨. 데이터 확인을 눌러주세요.`;
+  document.getElementById('setup-err').textContent = '';
 }
 
 async function setRandomBlind() {

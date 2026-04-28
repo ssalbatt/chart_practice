@@ -445,6 +445,11 @@ let revealedIdx = 0;
 let evalState   = null;  // {trend, conf, note} — filled during pre-eval
 let evalPhase   = null;  // 'pre' | 'post'
 
+// session zone markers (for background shading)
+let hideTime       = null;  // time of last candle before blind starts
+let revealTimes    = [];    // times at each reveal endpoint
+const REVEAL_COLORS = ['#26a69a18','#2962ff18','#ab47bc18','#ffd54f18','#ef535018','#80cbc418'];
+
 // chart instances
 let mainChart, rsiChart, macdChart, stochChart, obvChart;
 let candleSeries, volSeries;
@@ -637,14 +642,32 @@ async function previewData() {
   }
 }
 
-function setRandomBlind() {
-  if (!setupData) { previewData().then(setRandomBlind); return; }
-  const n     = setupData.candles.length;
-  const lo    = Math.floor(n * 0.2), hi = Math.floor(n * 0.85);
-  const idx   = lo + Math.floor(Math.random() * (hi - lo));
-  const dt    = new Date(setupData.candles[idx].time * 1000);
+async function setRandomBlind() {
+  const ticker = document.getElementById('s-ticker').value.trim().toUpperCase();
+  if (!ticker) { document.getElementById('setup-err').textContent = '티커를 먼저 입력하세요'; return; }
+
+  // pick random end date: between 3 months ago and 10 years ago
+  const now    = Date.now();
+  const minAgo = 90   * 86400000;       // 3개월
+  const maxAgo = 10 * 365 * 86400000;   // 10년
+  const endTs  = now - minAgo - Math.random() * (maxAgo - minAgo);
+  const startTs = endTs - 2 * 365 * 86400000;  // 2년치
+
+  const toDateStr = ts => new Date(ts).toISOString().slice(0, 10);
+  document.getElementById('s-start').value  = toDateStr(startTs);
+  document.getElementById('s-end').value    = toDateStr(endTs);
+  document.getElementById('s-period').value = '';
+
+  document.getElementById('preview-info').textContent = '랜덤 기간 불러오는 중...';
+  await previewData();
+
+  if (!setupData) return;
+  // set blind at 70~90% of data
+  const n   = setupData.candles.length;
+  const idx = Math.floor(n * (0.70 + Math.random() * 0.20));
+  const dt  = new Date(setupData.candles[idx].time * 1000);
   document.getElementById('s-blind-year').value  = String(dt.getFullYear());
-  document.getElementById('s-blind-month').value = String(dt.getMonth()+1).padStart(2,'0');
+  document.getElementById('s-blind-month').value = String(dt.getMonth() + 1).padStart(2, '0');
 }
 
 async function startSession() {
@@ -678,6 +701,8 @@ async function startSession() {
   };
   revealedIdx = hide_idx;
   drawings    = [];
+  hideTime    = curSession.candles[hide_idx - 1]?.time ?? null;
+  revealTimes = [];
   navigate('#practice');
   initPractice();
 }
@@ -732,6 +757,9 @@ function submitPreEval() {
   // do reveal
   const n = parseInt(document.getElementById('btn-reveal').dataset.n || '5') || 5;
   revealedIdx = Math.min(revealedIdx + n, curSession.total);
+  // track reveal boundary for background shading
+  const revealEndCandle = curSession.candles[revealedIdx - 1];
+  if (revealEndCandle) revealTimes.push(revealEndCandle.time);
   renderAll(revealedIdx);
   mainChart.timeScale().scrollToRealTime();
   updatePracticeStatus();
@@ -892,7 +920,9 @@ async function resumeSession(id) {
   } else {
     revealedIdx = s.hide_idx;
   }
-  drawings = [];
+  drawings    = [];
+  hideTime    = curSession.candles[curSession.hide_idx - 1]?.time ?? null;
+  revealTimes = s.reveals.map(r => curSession.candles[r.shown - 1]?.time).filter(Boolean);
   navigate('#practice');
   initPractice();
 }
@@ -1355,10 +1385,64 @@ function onUp(x, y) {
   if (drawMode === 'rect') { const c=px2chart(x,y); if(c.time)curDraw.p2=c; drawings.push({...curDraw}); curDraw=null; drawStep=0; renderDrawings(); }
 }
 
+function drawSessionMarkers(w, h) {
+  if (!curSession || !mainChart || !hideTime) return;
+
+  const hideX = mainChart.timeScale().timeToCoordinate(hideTime);
+
+  // shade everything from hide start to end as "blind zone" base
+  if (hideX != null) {
+    ctx.fillStyle = '#ffffff06';
+    ctx.fillRect(hideX, 0, w - hideX, h);
+
+    // blue dashed vertical line at blind start
+    ctx.save();
+    ctx.strokeStyle = '#2962ffaa';
+    ctx.lineWidth   = 1.5;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    ctx.moveTo(hideX, 0); ctx.lineTo(hideX, h);
+    ctx.stroke();
+    ctx.restore();
+
+    // label
+    ctx.fillStyle = '#2962ffcc';
+    ctx.font      = '10px Segoe UI';
+    ctx.fillText('블라인드', hideX + 4, 14);
+  }
+
+  // shade each reveal segment with alternating color
+  const boundaries = [hideTime, ...revealTimes];
+  for (let i = 0; i < revealTimes.length; i++) {
+    const x1 = mainChart.timeScale().timeToCoordinate(boundaries[i]);
+    const x2 = mainChart.timeScale().timeToCoordinate(boundaries[i + 1]);
+    if (x1 == null) continue;
+    const endX = (x2 != null) ? x2 : w;
+    ctx.fillStyle = REVEAL_COLORS[i % REVEAL_COLORS.length];
+    ctx.fillRect(x1, 0, endX - x1, h);
+
+    // dashed line at reveal boundary
+    ctx.save();
+    ctx.strokeStyle = '#ffffff33';
+    ctx.lineWidth   = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(x1, 0); ctx.lineTo(x1, h);
+    ctx.stroke();
+    ctx.restore();
+
+    // reveal number label
+    ctx.fillStyle = '#ffffff55';
+    ctx.font      = '10px Segoe UI';
+    ctx.fillText(`${i+1}차`, x1 + 3, 14);
+  }
+}
+
 function renderDrawings() {
   if (!ctx || !overlay) return;
   const w=overlay.offsetWidth, h=overlay.offsetHeight;
   ctx.clearRect(0,0,w,h);
+  drawSessionMarkers(w, h);
   ctx.font = '11px Segoe UI';
   const all = curDraw ? [...drawings,curDraw] : drawings;
   all.forEach(d => drawShape(d,w,h));

@@ -2,271 +2,957 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>차트 연습</title>
 <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  background: #131722; color: #d1d4dc;
-  font-family: 'Segoe UI', sans-serif; font-size: 13px;
-  height: 100dvh; display: flex; flex-direction: column; overflow: hidden;
-}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#131722;color:#d1d4dc;font-family:'Segoe UI',sans-serif;font-size:13px;height:100dvh;overflow:hidden}
 
-/* ── 바 공통 ── */
-.bar {
-  background: #1e222d; border-bottom: 1px solid #2a2e39;
-  padding: 6px 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
-  flex-shrink: 0;
-}
-.bar:last-child { border-bottom: none; border-top: 1px solid #2a2e39; }
-.sep { width: 1px; height: 22px; background: #2a2e39; flex-shrink: 0; }
-label { color: #787b86; font-size: 11px; }
+/* ── 공통 ── */
+.page{display:none;flex-direction:column;height:100dvh;overflow:hidden}
+.page.active{display:flex}
+input,select,textarea{background:#131722;border:1px solid #2a2e39;color:#d1d4dc;padding:5px 8px;border-radius:4px;font-size:13px;outline:none;font-family:inherit}
+input:focus,select:focus,textarea:focus{border-color:#2962ff}
+textarea{resize:vertical}
+button{cursor:pointer;border:none;border-radius:4px;font-size:13px;padding:6px 14px;transition:background .15s}
+.btn-primary{background:#2962ff;color:#fff} .btn-primary:hover{background:#1e4fd8}
+.btn-ghost{background:#2a2e39;color:#d1d4dc} .btn-ghost:hover{background:#363b4e}
+.btn-ok{background:#26a69a;color:#fff} .btn-ok:hover{background:#1d8078}
+.btn-danger{background:#e53935;color:#fff} .btn-danger:hover{background:#c62828}
+.sep{width:1px;height:22px;background:#2a2e39;flex-shrink:0}
+label{color:#787b86;font-size:11px}
+.err{color:#ef5350;font-size:12px;margin-top:4px;min-height:16px}
+.topnav{background:#1e222d;border-bottom:1px solid #2a2e39;padding:8px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.topnav-title{font-size:15px;font-weight:600;color:#fff}
+.spacer{flex:1}
+.scroll-y{overflow-y:auto;flex:1}
 
-input[type=text], input[type=date], input[type=number], select {
-  background: #131722; border: 1px solid #2a2e39; color: #d1d4dc;
-  padding: 4px 7px; border-radius: 4px; font-size: 12px; outline: none;
-}
-input[type=text]   { width: 100px; text-transform: uppercase; }
-input[type=date]   { width: 130px; color-scheme: dark; }
-input[type=number] { width: 60px; }
-select { width: 88px; }
-input:focus, select:focus { border-color: #2962ff; }
+/* ── Auth ── */
+#page-auth{justify-content:center;align-items:center;background:#131722}
+.auth-box{background:#1e222d;border:1px solid #2a2e39;border-radius:8px;padding:32px;width:320px}
+.auth-box h1{font-size:20px;color:#fff;margin-bottom:20px;text-align:center}
+.tab-btns{display:flex;gap:4px;margin-bottom:20px}
+.tab-btns button{flex:1;padding:7px;background:#2a2e39;color:#787b86}
+.tab-btns button.on{background:#2962ff;color:#fff}
+.auth-field{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.auth-field label{font-size:12px}
 
-button {
-  background: #2962ff; color: #fff; border: none;
-  padding: 5px 11px; border-radius: 4px; cursor: pointer; font-size: 12px;
-  transition: background .15s; white-space: nowrap;
-}
-button:hover  { background: #1e4fd8; }
-button.ghost  { background: #2a2e39; color: #d1d4dc; }
-button.ghost:hover { background: #363b4e; }
-button.danger { background: #e53935; } button.danger:hover { background: #c62828; }
-button.ok     { background: #26a69a; } button.ok:hover    { background: #1d8078; }
+/* ── Home ── */
+.home-content{padding:16px;display:flex;flex-direction:column;gap:12px}
+.session-card{background:#1e222d;border:1px solid #2a2e39;border-radius:6px;padding:12px 14px;cursor:pointer;transition:border-color .15s}
+.session-card:hover{border-color:#2962ff}
+.card-header{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.card-ticker{font-size:15px;font-weight:600;color:#fff}
+.card-meta{color:#787b86;font-size:11px}
+.card-stats{display:flex;gap:12px;font-size:12px}
+.stat-correct{color:#26a69a} .stat-wrong{color:#ef5350} .stat-ambig{color:#ffd54f}
+.badge{padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600}
+.badge-active{background:#2962ff22;color:#2962ff}
+.badge-ended{background:#2a2e39;color:#787b86}
+.new-btn{background:#2962ff;color:#fff;padding:12px;border-radius:6px;font-size:14px;font-weight:600;text-align:center;cursor:pointer}
+.new-btn:hover{background:#1e4fd8}
+.section-title{font-size:12px;color:#787b86;text-transform:uppercase;letter-spacing:.5px}
 
-/* ── 지표 토글 ── */
-.tog {
-  background: #2a2e39; border: 1px solid transparent;
-  padding: 3px 9px; border-radius: 3px; cursor: pointer; font-size: 11px;
-  color: #787b86; transition: all .15s;
-}
-.tog.on { border-color: currentColor; }
-.tog.ma5   { color: #f48024; } .tog.ma20  { color: #26c6da; }
-.tog.ma60  { color: #ab47bc; } .tog.ma120 { color: #ef5350; }
-.tog.ma200 { color: #66bb6a; } .tog.bb    { color: #ffd54f; }
-.tog.ichi  { color: #80cbc4; } .tog.vol   { color: #90a4ae; }
-.tog.rsi   { color: #ff8a65; } .tog.macd  { color: #ce93d8; }
-.tog.stoch { color: #80deea; } .tog.obv   { color: #a5d6a7; }
+/* ── Setup ── */
+.setup-content{padding:16px;display:flex;flex-direction:column;gap:14px;max-width:480px;margin:0 auto;width:100%}
+.setup-row{display:flex;flex-direction:column;gap:6px}
+.setup-row label{font-size:12px;color:#787b86}
+.inline-row{display:flex;gap:8px;align-items:center}
+.blind-opts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#preview-info{background:#1e222d;border-radius:4px;padding:10px 12px;font-size:12px;color:#787b86;min-height:38px}
 
-/* ── 그리기 툴바 ── */
-.dtool {
-  background: #2a2e39; border: 1px solid transparent;
-  padding: 4px 10px; border-radius: 3px; cursor: pointer; font-size: 12px;
-  color: #d1d4dc; transition: all .15s;
-}
-.dtool:hover { background: #363b4e; }
-.dtool.on { background: #2962ff; border-color: #2962ff; }
-input[type=color] {
-  width: 28px; height: 28px; padding: 1px; border-radius: 3px;
-  border: 1px solid #2a2e39; cursor: pointer; background: none;
-}
+/* ── Practice ── */
+.bar{background:#1e222d;border-bottom:1px solid #2a2e39;padding:5px 10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex-shrink:0}
+.bar:last-child{border-bottom:none;border-top:1px solid #2a2e39}
+.tog{background:#2a2e39;border:1px solid transparent;padding:3px 8px;border-radius:3px;cursor:pointer;font-size:11px;color:#787b86}
+.tog.on{border-color:currentColor}
+.tog.ma5{color:#f48024}.tog.ma20{color:#26c6da}.tog.ma60{color:#ab47bc}
+.tog.ma120{color:#ef5350}.tog.ma200{color:#66bb6a}.tog.bb{color:#ffd54f}
+.tog.ichi{color:#80cbc4}.tog.vol{color:#90a4ae}.tog.rsi{color:#ff8a65}
+.tog.macd{color:#ce93d8}.tog.stoch{color:#80deea}.tog.obv{color:#a5d6a7}
+.dtool{background:#2a2e39;border:1px solid transparent;padding:4px 9px;border-radius:3px;cursor:pointer;font-size:12px;color:#d1d4dc}
+.dtool:hover{background:#363b4e}.dtool.on{background:#2962ff;border-color:#2962ff}
+input[type=color]{width:26px;height:26px;padding:1px;border-radius:3px;border:1px solid #2a2e39;cursor:pointer;background:none}
+#chart-area{flex:1;display:flex;flex-direction:column;min-height:0;position:relative}
+#main-wrap{flex:1;position:relative;min-height:0}
+#main-chart{width:100%;height:100%}
+#drawing-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;cursor:crosshair}
+.subchart{flex-shrink:0;position:relative;display:none}
+.subchart-label{position:absolute;top:4px;left:8px;font-size:10px;color:#787b86;z-index:5;pointer-events:none}
+.resize-handle{height:5px;background:#2a2e39;cursor:ns-resize;flex-shrink:0}
+.resize-handle:hover,.resize-handle.dragging{background:#2962ff}
+#practice-header{background:#1e222d;border-bottom:1px solid #2a2e39;padding:6px 10px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+#practice-ticker{font-size:14px;font-weight:600;color:#fff}
+#practice-info{font-size:11px;color:#787b86}
+#practice-status{font-size:11px;color:#787b86}
 
-/* ── 차트 영역 ── */
-#chart-area {
-  flex: 1; display: flex; flex-direction: column; min-height: 0; position: relative;
-}
-#main-wrap { flex: 1; position: relative; min-height: 0; }
-#main-chart { width: 100%; height: 100%; }
-#drawing-overlay {
-  position: absolute; top: 0; left: 0;
-  width: 100%; height: 100%;
-  pointer-events: none; z-index: 10;
-  cursor: crosshair;
-}
-.subchart { flex-shrink: 0; position: relative; }
-.subchart-label {
-  position: absolute; top: 4px; left: 8px;
-  font-size: 10px; color: #787b86; z-index: 5; pointer-events: none;
-}
+/* ── Evaluation Drawer ── */
+#eval-drawer{position:fixed;bottom:0;left:0;right:0;background:#1e222d;border-top:2px solid #2962ff;padding:14px 16px;z-index:200;transform:translateY(100%);transition:transform .3s ease}
+#eval-drawer.open{transform:translateY(0)}
+.eval-title{font-size:13px;font-weight:600;color:#fff;margin-bottom:10px}
+.eval-section{margin-bottom:10px}
+.eval-section>label{display:block;margin-bottom:5px;color:#787b86;font-size:11px}
+.btn-group{display:flex;gap:6px;flex-wrap:wrap}
+.eval-btn{background:#2a2e39;color:#d1d4dc;padding:6px 12px;border-radius:4px;border:1px solid transparent}
+.eval-btn:hover{background:#363b4e}
+.eval-btn.on{border-color:#2962ff;color:#2962ff;background:#2962ff22}
+.eval-btn.on-ok{border-color:#26a69a;color:#26a69a;background:#26a69a22}
+.eval-btn.on-bad{border-color:#ef5350;color:#ef5350;background:#ef535022}
+.eval-row{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.eval-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+#eval-post-summary{font-size:12px;color:#787b86;margin-bottom:10px}
 
-/* ── 연습 바 ── */
-#status-msg { color: #787b86; font-size: 11px; }
+/* ── Final Modal ── */
+#final-modal{position:fixed;inset:0;background:#000a;z-index:300;display:none;justify-content:center;align-items:center}
+#final-modal.open{display:flex}
+.modal-box{background:#1e222d;border:1px solid #2a2e39;border-radius:8px;padding:24px;width:340px}
+.modal-box h2{font-size:16px;color:#fff;margin-bottom:14px}
+.modal-field{margin-bottom:12px;display:flex;flex-direction:column;gap:5px}
+.modal-field label{font-size:12px;color:#787b86}
+.modal-stats{background:#131722;border-radius:4px;padding:10px;margin-bottom:12px;font-size:12px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+
+/* ── History ── */
+.history-content{padding:12px;display:flex;flex-direction:column;gap:8px}
+
+/* ── Detail ── */
+.detail-content{padding:14px;display:flex;flex-direction:column;gap:14px}
+.detail-meta{background:#1e222d;border-radius:6px;padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.meta-item label{display:block;font-size:10px;color:#787b86}
+.meta-item span{font-size:13px;color:#fff}
+.reveal-item{background:#1e222d;border-radius:6px;padding:10px 12px;border-left:3px solid #2a2e39}
+.reveal-item.correct{border-color:#26a69a}
+.reveal-item.wrong{border-color:#ef5350}
+.reveal-item.ambig{border-color:#ffd54f}
+.reveal-header{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.reveal-num{font-size:11px;font-weight:600;color:#787b86}
+.reveal-tags{display:flex;gap:5px}
+.tag{padding:2px 7px;border-radius:3px;font-size:10px;background:#2a2e39;color:#d1d4dc}
+.reveal-note{font-size:12px;color:#787b86;margin-top:4px}
+
+/* ── Settings ── */
+.settings-content{padding:16px;display:flex;flex-direction:column;gap:16px;max-width:400px}
+.settings-section{display:flex;flex-direction:column;gap:8px}
+.settings-section h3{font-size:12px;color:#787b86;text-transform:uppercase;letter-spacing:.5px}
+.ma-inputs{display:flex;gap:6px;flex-wrap:wrap}
+.ma-inputs input{width:56px}
 </style>
 </head>
 <body>
 
-<!-- 상단 컨트롤 -->
-<div class="bar" id="top-bar">
-  <label>티커</label>
-  <input type="text" id="ticker" value="AAPL" placeholder="AAPL / 005930.KS">
-  <div class="sep"></div>
-  <label>시작</label>
-  <input type="date" id="date-start">
-  <label>종료</label>
-  <input type="date" id="date-end">
-  <select id="period">
-    <option value="">직접지정</option>
-    <option value="1mo">1개월</option>
-    <option value="3mo">3개월</option>
-    <option value="6mo">6개월</option>
-    <option value="1y" selected>1년</option>
-    <option value="2y">2년</option>
-    <option value="5y">5년</option>
-    <option value="max">전체</option>
-  </select>
-  <select id="interval">
-    <option value="1d" selected>일봉</option>
-    <option value="1wk">주봉</option>
-    <option value="1mo">월봉</option>
-    <option value="1h">1시간</option>
-    <option value="15m">15분</option>
-  </select>
-  <button id="btn-load">불러오기</button>
-</div>
-
-<!-- 지표 토글 -->
-<div class="bar" id="indicator-bar">
-  <span style="color:#787b86;font-size:11px">지표:</span>
-  <button class="tog ma5"   data-ind="ma5">MA5</button>
-  <button class="tog ma20 on" data-ind="ma20">MA20</button>
-  <button class="tog ma60 on" data-ind="ma60">MA60</button>
-  <button class="tog ma120" data-ind="ma120">MA120</button>
-  <button class="tog ma200" data-ind="ma200">MA200</button>
-  <button class="tog bb"   data-ind="bb">볼린저</button>
-  <button class="tog ichi" data-ind="ichi">일목</button>
-  <div class="sep"></div>
-  <button class="tog vol on" data-ind="vol">거래량</button>
-  <button class="tog rsi"   data-ind="rsi">RSI</button>
-  <button class="tog macd"  data-ind="macd">MACD</button>
-  <button class="tog stoch" data-ind="stoch">스토캐스틱</button>
-  <button class="tog obv"   data-ind="obv">OBV</button>
-</div>
-
-<!-- 그리기 툴바 -->
-<div class="bar" id="drawing-bar">
-  <span style="color:#787b86;font-size:11px">그리기:</span>
-  <button class="dtool on" data-tool="pointer">포인터</button>
-  <button class="dtool"    data-tool="line">추세선</button>
-  <button class="dtool"    data-tool="ray">레이</button>
-  <button class="dtool"    data-tool="hline">수평선</button>
-  <button class="dtool"    data-tool="vline">수직선</button>
-  <button class="dtool"    data-tool="rect">사각형</button>
-  <button class="dtool"    data-tool="fib">피보나치</button>
-  <div class="sep"></div>
-  <input type="color" id="draw-color" value="#f4c542" title="선 색상">
-  <button class="ghost" id="btn-undo">실행취소</button>
-  <button class="ghost" id="btn-clear-draw">전체삭제</button>
-</div>
-
-<!-- 차트 영역 -->
-<div id="chart-area">
-  <div id="main-wrap">
-    <div id="main-chart"></div>
-    <canvas id="drawing-overlay"></canvas>
-  </div>
-  <div class="subchart" id="sub-rsi" style="height:110px;display:none">
-    <span class="subchart-label">RSI(14)</span>
-    <div id="chart-rsi" style="width:100%;height:100%"></div>
-  </div>
-  <div class="subchart" id="sub-macd" style="height:110px;display:none">
-    <span class="subchart-label">MACD(12,26,9)</span>
-    <div id="chart-macd" style="width:100%;height:100%"></div>
-  </div>
-  <div class="subchart" id="sub-stoch" style="height:110px;display:none">
-    <span class="subchart-label">Stochastic(14,3)</span>
-    <div id="chart-stoch" style="width:100%;height:100%"></div>
-  </div>
-  <div class="subchart" id="sub-obv" style="height:110px;display:none">
-    <span class="subchart-label">OBV</span>
-    <div id="chart-obv" style="width:100%;height:100%"></div>
+<!-- ══════════ AUTH ══════════ -->
+<div id="page-auth" class="page">
+  <div class="auth-box">
+    <h1>📈 차트 연습</h1>
+    <div class="tab-btns">
+      <button id="tab-login-btn" class="on" onclick="switchTab('login')">로그인</button>
+      <button id="tab-reg-btn" onclick="switchTab('register')">회원가입</button>
+    </div>
+    <div id="tab-login">
+      <div class="auth-field"><label>아이디</label><input id="login-user" type="text" autocomplete="username"></div>
+      <div class="auth-field"><label>비밀번호</label><input id="login-pw" type="password" autocomplete="current-password"></div>
+      <button class="btn-primary" style="width:100%;margin-top:4px" onclick="doLogin()">로그인</button>
+    </div>
+    <div id="tab-reg" style="display:none">
+      <div class="auth-field"><label>아이디 (2~30자)</label><input id="reg-user" type="text"></div>
+      <div class="auth-field"><label>비밀번호 (4자 이상)</label><input id="reg-pw" type="password"></div>
+      <button class="btn-primary" style="width:100%;margin-top:4px" onclick="doRegister()">가입</button>
+    </div>
+    <div class="err" id="auth-err"></div>
   </div>
 </div>
 
-<!-- 연습 바 -->
-<div class="bar" id="practice-bar">
-  <label>숨김 시작(%)</label>
-  <input type="number" id="hide-pct" value="80" min="10" max="95">
-  <button class="ghost" id="btn-practice">연습 시작</button>
-  <div class="sep"></div>
-  <label>공개 봉</label>
-  <input type="number" id="reveal-n" value="5" min="1">
-  <button class="ok"    id="btn-reveal" disabled>다음 공개</button>
-  <button class="danger" id="btn-reveal-all" disabled>전체 공개</button>
-  <button class="ghost" id="btn-reset">초기화</button>
-  <div class="sep"></div>
-  <span id="status-msg">티커를 입력하고 불러오기를 누르세요.</span>
+<!-- ══════════ HOME ══════════ -->
+<div id="page-home" class="page">
+  <div class="topnav">
+    <span class="topnav-title">📈 차트 연습</span>
+    <span class="spacer"></span>
+    <span id="home-username" style="color:#787b86;font-size:12px"></span>
+    <button class="btn-ghost" style="font-size:12px;padding:4px 10px" onclick="navigate('#history')">기록</button>
+    <button class="btn-ghost" style="font-size:12px;padding:4px 10px" onclick="navigate('#settings')">설정</button>
+    <button class="btn-ghost" style="font-size:12px;padding:4px 10px" onclick="doLogout()">로그아웃</button>
+  </div>
+  <div class="scroll-y">
+    <div class="home-content">
+      <div class="new-btn" onclick="navigate('#setup')">+ 새 세션 시작</div>
+      <div class="section-title">최근 세션</div>
+      <div id="home-sessions"></div>
+      <button class="btn-ghost" style="align-self:flex-start" onclick="navigate('#history')">전체 기록 보기 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SETUP ══════════ -->
+<div id="page-setup" class="page">
+  <div class="topnav">
+    <button class="btn-ghost" style="padding:4px 10px;font-size:12px" onclick="navigate('#home')">← 홈</button>
+    <span class="topnav-title">새 세션 설정</span>
+  </div>
+  <div class="scroll-y">
+    <div class="setup-content">
+      <div class="setup-row">
+        <label>티커 (예: AAPL, 005930.KS)</label>
+        <div class="inline-row">
+          <input id="s-ticker" type="text" style="width:130px;text-transform:uppercase" placeholder="AAPL">
+          <button class="btn-ghost" onclick="previewData()">데이터 확인</button>
+        </div>
+      </div>
+      <div class="setup-row">
+        <label>기간</label>
+        <div class="inline-row" style="flex-wrap:wrap">
+          <select id="s-period">
+            <option value="">직접 지정</option>
+            <option value="1mo">1개월</option>
+            <option value="3mo">3개월</option>
+            <option value="6mo">6개월</option>
+            <option value="1y" selected>1년</option>
+            <option value="2y">2년</option>
+            <option value="5y">5년</option>
+            <option value="max">전체</option>
+          </select>
+          <span style="color:#787b86;font-size:11px">또는</span>
+          <input type="date" id="s-start" style="width:130px" placeholder="시작일">
+          <span style="color:#787b86">~</span>
+          <input type="date" id="s-end" style="width:130px" placeholder="종료일">
+        </div>
+      </div>
+      <div class="setup-row">
+        <label>봉 단위</label>
+        <select id="s-interval" style="width:100px">
+          <option value="1d" selected>일봉</option>
+          <option value="1wk">주봉</option>
+          <option value="1mo">월봉</option>
+          <option value="1h">1시간</option>
+        </select>
+      </div>
+      <div class="setup-row">
+        <label>블라인드 시작 시점 (이 시점 이후를 가립니다)</label>
+        <div class="blind-opts">
+          <select id="s-blind-year" style="width:80px"></select>
+          <span style="color:#787b86">년</span>
+          <select id="s-blind-month" style="width:66px">
+            <option value="01">1월</option><option value="02">2월</option>
+            <option value="03">3월</option><option value="04">4월</option>
+            <option value="05">5월</option><option value="06">6월</option>
+            <option value="07">7월</option><option value="08">8월</option>
+            <option value="09">9월</option><option value="10">10월</option>
+            <option value="11">11월</option><option value="12">12월</option>
+          </select>
+          <span style="color:#787b86">월부터</span>
+          <button class="btn-ghost" onclick="setRandomBlind()">🎲 랜덤</button>
+        </div>
+      </div>
+      <div id="preview-info">티커 입력 후 '데이터 확인'을 누르세요.</div>
+      <div class="err" id="setup-err"></div>
+      <button class="btn-primary" style="padding:10px" onclick="startSession()">세션 시작 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ PRACTICE ══════════ -->
+<div id="page-practice" class="page">
+  <div id="practice-header">
+    <button class="btn-ghost" style="padding:4px 9px;font-size:12px" onclick="confirmLeave()">← 홈</button>
+    <span id="practice-ticker"></span>
+    <span id="practice-info"></span>
+    <span class="spacer"></span>
+    <span id="practice-status"></span>
+    <button class="btn-ok"     id="btn-reveal"     style="font-size:12px;padding:5px 11px" disabled onclick="handleReveal()">다음 공개</button>
+    <button class="btn-danger" id="btn-end-session" style="font-size:12px;padding:5px 11px" onclick="showFinalModal()">세션 종료</button>
+  </div>
+
+  <!-- 지표 바 -->
+  <div class="bar" id="indicator-bar">
+    <span style="color:#787b86;font-size:11px">지표:</span>
+    <button class="tog ma5"   data-ind="ma5">MA5</button>
+    <button class="tog ma20 on" data-ind="ma20">MA20</button>
+    <button class="tog ma60 on" data-ind="ma60">MA60</button>
+    <button class="tog ma120"  data-ind="ma120">MA120</button>
+    <button class="tog ma200"  data-ind="ma200">MA200</button>
+    <button class="tog bb"    data-ind="bb">볼린저</button>
+    <button class="tog ichi"  data-ind="ichi">일목</button>
+    <div class="sep"></div>
+    <button class="tog vol on" data-ind="vol">거래량</button>
+    <button class="tog rsi"   data-ind="rsi">RSI</button>
+    <button class="tog macd"  data-ind="macd">MACD</button>
+    <button class="tog stoch" data-ind="stoch">스토캐스틱</button>
+    <button class="tog obv"   data-ind="obv">OBV</button>
+  </div>
+
+  <!-- 그리기 바 -->
+  <div class="bar">
+    <span style="color:#787b86;font-size:11px">그리기:</span>
+    <button class="dtool on" data-tool="pointer">포인터</button>
+    <button class="dtool"    data-tool="pen">자유</button>
+    <button class="dtool"    data-tool="line">추세선</button>
+    <button class="dtool"    data-tool="ray">레이</button>
+    <button class="dtool"    data-tool="hline">수평선</button>
+    <button class="dtool"    data-tool="vline">수직선</button>
+    <button class="dtool"    data-tool="rect">사각형</button>
+    <button class="dtool"    data-tool="fib">피보나치</button>
+    <div class="sep"></div>
+    <input type="color" id="draw-color" value="#f4c542">
+    <button class="btn-ghost" style="font-size:12px;padding:4px 9px" onclick="undoDraw()">취소</button>
+    <button class="btn-ghost" style="font-size:12px;padding:4px 9px" onclick="clearDrawings()">전체삭제</button>
+  </div>
+
+  <!-- 차트 영역 -->
+  <div id="chart-area">
+    <div id="main-wrap">
+      <div id="main-chart"></div>
+      <canvas id="drawing-overlay"></canvas>
+    </div>
+    <div class="resize-handle" data-target="sub-rsi"></div>
+    <div class="subchart" id="sub-rsi"><span class="subchart-label">RSI(14)</span><div id="chart-rsi" style="width:100%;height:100%"></div></div>
+    <div class="resize-handle" data-target="sub-macd"></div>
+    <div class="subchart" id="sub-macd"><span class="subchart-label">MACD(12,26,9)</span><div id="chart-macd" style="width:100%;height:100%"></div></div>
+    <div class="resize-handle" data-target="sub-stoch"></div>
+    <div class="subchart" id="sub-stoch"><span class="subchart-label">Stochastic(14,3)</span><div id="chart-stoch" style="width:100%;height:100%"></div></div>
+    <div class="resize-handle" data-target="sub-obv"></div>
+    <div class="subchart" id="sub-obv"><span class="subchart-label">OBV</span><div id="chart-obv" style="width:100%;height:100%"></div></div>
+  </div>
+</div>
+
+<!-- 평가 드로어 -->
+<div id="eval-drawer">
+  <div id="eval-pre">
+    <div class="eval-title">공개 전 예측</div>
+    <div class="eval-row">
+      <div class="eval-section">
+        <label>추세</label>
+        <div class="btn-group">
+          <button class="eval-btn" data-trend="up">📈 상승</button>
+          <button class="eval-btn" data-trend="side">➡ 횡보</button>
+          <button class="eval-btn" data-trend="down">📉 하락</button>
+        </div>
+      </div>
+      <div class="eval-section">
+        <label>확신도</label>
+        <div class="btn-group">
+          <button class="eval-btn" data-conf="strong">강한확신</button>
+          <button class="eval-btn" data-conf="confident">확신</button>
+          <button class="eval-btn" data-conf="uncertain">불확실</button>
+          <button class="eval-btn" data-conf="unknown">알수없음</button>
+        </div>
+      </div>
+    </div>
+    <div class="eval-section" style="margin-top:8px">
+      <label>메모 (선택)</label>
+      <textarea id="pre-note" rows="2" style="width:100%;margin-top:4px" placeholder="분석 내용..."></textarea>
+    </div>
+    <div class="eval-actions">
+      <button class="btn-ghost" onclick="closeEvalDrawer()">취소</button>
+      <button class="btn-primary" onclick="submitPreEval()">공개하기 →</button>
+    </div>
+  </div>
+  <div id="eval-post" style="display:none">
+    <div class="eval-title">결과 평가</div>
+    <div id="eval-post-summary" class="eval-section"></div>
+    <div class="btn-group">
+      <button class="eval-btn" data-post="correct" style="color:#26a69a">✓ 맞음</button>
+      <button class="eval-btn" data-post="ambig"   style="color:#ffd54f">~ 모호함</button>
+      <button class="eval-btn" data-post="wrong"   style="color:#ef5350">✗ 틀림</button>
+    </div>
+  </div>
+</div>
+
+<!-- 세션 종료 모달 -->
+<div id="final-modal">
+  <div class="modal-box">
+    <h2>세션 종료</h2>
+    <div class="modal-stats" id="final-stats-display"></div>
+    <div class="modal-field">
+      <label>자기 평가 점수 (1~10)</label>
+      <input type="number" id="final-score" min="1" max="10" value="5" style="width:80px">
+    </div>
+    <div class="modal-field">
+      <label>세션 총평</label>
+      <textarea id="final-note" rows="3" style="width:100%" placeholder="이번 세션 소감..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeFinalModal()">취소</button>
+      <button class="btn-danger" onclick="submitFinalEval()">종료 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ HISTORY ══════════ -->
+<div id="page-history" class="page">
+  <div class="topnav">
+    <button class="btn-ghost" style="padding:4px 10px;font-size:12px" onclick="navigate('#home')">← 홈</button>
+    <span class="topnav-title">세션 기록</span>
+  </div>
+  <div class="scroll-y">
+    <div class="history-content" id="history-list"></div>
+  </div>
+</div>
+
+<!-- ══════════ DETAIL ══════════ -->
+<div id="page-detail" class="page">
+  <div class="topnav">
+    <button class="btn-ghost" style="padding:4px 10px;font-size:12px" onclick="navigate('#history')">← 기록</button>
+    <span class="topnav-title" id="detail-title">세션 상세</span>
+  </div>
+  <div class="scroll-y">
+    <div class="detail-content" id="detail-content"></div>
+  </div>
+</div>
+
+<!-- ══════════ SETTINGS ══════════ -->
+<div id="page-settings" class="page">
+  <div class="topnav">
+    <button class="btn-ghost" style="padding:4px 10px;font-size:12px" onclick="navigate('#home')">← 홈</button>
+    <span class="topnav-title">설정</span>
+  </div>
+  <div class="scroll-y">
+    <div class="settings-content">
+      <div class="settings-section">
+        <h3>이평선 기간</h3>
+        <div class="ma-inputs" id="ma-inputs">
+          <input type="number" class="ma-input" value="5" min="1" max="500">
+          <input type="number" class="ma-input" value="20" min="1" max="500">
+          <input type="number" class="ma-input" value="60" min="1" max="500">
+          <input type="number" class="ma-input" value="120" min="1" max="500">
+          <input type="number" class="ma-input" value="200" min="1" max="500">
+        </div>
+      </div>
+      <div class="settings-section">
+        <h3>비밀번호 변경</h3>
+        <div class="auth-field"><label>새 비밀번호</label><input type="password" id="new-pw"></div>
+        <button class="btn-ghost" onclick="changePw()">변경</button>
+        <div class="err" id="pw-err"></div>
+      </div>
+      <button class="btn-primary" onclick="saveSettings()">설정 저장</button>
+      <div class="err" id="settings-err"></div>
+    </div>
+  </div>
 </div>
 
 <script>
 'use strict';
 
 // ═══════════════════════════════════════════════
-// STATE
+// GLOBAL STATE
 // ═══════════════════════════════════════════════
-let allData = null;
-let revealedIdx = 0;
-let practiceMode = false;
-let hideCutIdx = 0;
+let token    = localStorage.getItem('cp_token') || '';
+let username = localStorage.getItem('cp_user')  || '';
+let settings = {};
 
+let setupData   = null;  // preloaded chart data on setup page
+let curSession  = null;  // {id, ticker, name, interval, candles, hide_idx, total, correct, wrong, ambig}
+let revealedIdx = 0;
+let evalState   = null;  // {trend, conf, note} — filled during pre-eval
+let evalPhase   = null;  // 'pre' | 'post'
+
+// chart instances
+let mainChart, rsiChart, macdChart, stochChart, obvChart;
+let candleSeries, volSeries;
+let maSeries = {}, bbSeries = {}, ichiSeries = {};
+let rsiLine, rsiOb, rsiOs, macdLine, macdSig, macdHist;
+let stochK, stochD, stochOb, stochOs, obvLine;
+
+// drawing
+let drawMode  = 'pointer';
+let drawColor = '#f4c542';
+let drawings  = [];
+let curDraw   = null;
+let drawStep  = 0;
+let isPen     = false;
+let overlay, ctx;
+
+// active indicators
 const active = {
   ma5:false, ma20:true, ma60:true, ma120:false, ma200:false,
   bb:false, ichi:false, vol:true, rsi:false, macd:false, stoch:false, obv:false
 };
 
-// drawing
-let drawMode   = 'pointer';
-let drawColor  = '#f4c542';
-let drawings   = [];
-let curDraw    = null;   // in-progress
-let drawStep   = 0;      // 0=waiting p1, 1=waiting p2
-
-// chart instances
-let mainChart, rsiChart, macdChart, stochChart, obvChart;
-let candleSeries, volSeries;
-let maSeries  = {}, bbSeries = {}, ichiSeries = {};
-let rsiLine, rsiOb, rsiOs;
-let macdLine, macdSig, macdHist;
-let stochK, stochD, stochOb, stochOs;
-let obvLine;
-
-// canvas
-let overlay, ctx, overlayDpr = 1;
+// ═══════════════════════════════════════════════
+// API HELPER
+// ═══════════════════════════════════════════════
+const api = {
+  h: () => ({ 'Content-Type':'application/json', 'Authorization':'Bearer '+token }),
+  get:   url      => fetch(url, { headers: api.h() }).then(r => r.json()),
+  post:  (url, b) => fetch(url, { method:'POST',  headers: api.h(), body: JSON.stringify(b) }).then(r => r.json()),
+  patch: (url, b) => fetch(url, { method:'PATCH', headers: api.h(), body: JSON.stringify(b) }).then(r => r.json()),
+};
 
 // ═══════════════════════════════════════════════
-// CHART INIT
+// ROUTER
 // ═══════════════════════════════════════════════
-const CHART_OPTS = () => ({
-  layout: { background: { color: '#131722' }, textColor: '#787b86' },
-  grid:   { vertLines: { color: '#1e222d' }, horzLines: { color: '#1e222d' } },
-  crosshair: { mode: 1 },
-  timeScale: { timeVisible: true, borderColor: '#2a2e39' },
-  rightPriceScale: { borderColor: '#2a2e39' },
-  handleScroll: true,
-  handleScale: true,
+const PAGES = ['auth','home','setup','practice','history','detail','settings'];
+
+function showPage(name) {
+  PAGES.forEach(p => document.getElementById('page-'+p).classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+}
+
+function navigate(hash) {
+  window.location.hash = hash;
+}
+
+async function route() {
+  if (!token) { showPage('auth'); return; }
+  const hash = window.location.hash || '#home';
+  if (hash === '#home')       { showPage('home');     loadHome(); }
+  else if (hash === '#setup') { showPage('setup');    initSetup(); }
+  else if (hash === '#practice') { showPage('practice'); }
+  else if (hash === '#history')  { showPage('history'); loadHistory(); }
+  else if (hash.startsWith('#detail')) { showPage('detail'); loadDetail(hash); }
+  else if (hash === '#settings') { showPage('settings'); loadSettings(); }
+  else navigate('#home');
+}
+
+window.addEventListener('hashchange', route);
+
+// ═══════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════
+function switchTab(tab) {
+  document.getElementById('tab-login').style.display = tab==='login' ? 'block':'none';
+  document.getElementById('tab-reg').style.display   = tab==='register' ? 'block':'none';
+  document.getElementById('tab-login-btn').classList.toggle('on', tab==='login');
+  document.getElementById('tab-reg-btn').classList.toggle('on', tab==='register');
+  document.getElementById('auth-err').textContent = '';
+}
+
+async function doLogin() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pw').value;
+  const res = await api.post('/api/login', { username:u, password:p });
+  if (res.error) { document.getElementById('auth-err').textContent = res.error; return; }
+  token = res.token; username = res.username;
+  localStorage.setItem('cp_token', token);
+  localStorage.setItem('cp_user', username);
+  navigate('#home');
+}
+
+async function doRegister() {
+  const u = document.getElementById('reg-user').value.trim();
+  const p = document.getElementById('reg-pw').value;
+  const res = await api.post('/api/register', { username:u, password:p });
+  if (res.error) { document.getElementById('auth-err').textContent = res.error; return; }
+  token = res.token; username = res.username;
+  localStorage.setItem('cp_token', token);
+  localStorage.setItem('cp_user', username);
+  navigate('#home');
+}
+
+function doLogout() {
+  token = ''; username = '';
+  localStorage.removeItem('cp_token');
+  localStorage.removeItem('cp_user');
+  navigate('#home');
+  route();
+}
+
+// ═══════════════════════════════════════════════
+// HOME
+// ═══════════════════════════════════════════════
+async function loadHome() {
+  document.getElementById('home-username').textContent = username + '님';
+  const sessions = await api.get('/api/sessions');
+  if (!Array.isArray(sessions)) { doLogout(); return; }
+  const el = document.getElementById('home-sessions');
+  const recent = sessions.slice(0, 5);
+  if (!recent.length) {
+    el.innerHTML = '<div style="color:#787b86;font-size:12px;padding:10px 0">아직 세션이 없습니다.</div>';
+    return;
+  }
+  el.innerHTML = recent.map(s => sessionCard(s)).join('');
+}
+
+function sessionCard(s) {
+  const total = s.correct + s.wrong + s.ambig;
+  const pct   = total ? Math.round(s.correct / total * 100) : '-';
+  const date  = s.created.slice(0,10);
+  const badge = s.status === 'active'
+    ? '<span class="badge badge-active">진행중</span>'
+    : '<span class="badge badge-ended">종료</span>';
+  return `<div class="session-card" onclick="navigate('#detail?id=${s.id}')">
+    <div class="card-header">
+      <span class="card-ticker">${s.ticker}</span>
+      <span class="card-meta">${s.interval} · ${s.total}봉</span>
+      ${badge}
+    </div>
+    <div class="card-stats">
+      <span class="stat-correct">✓ ${s.correct}</span>
+      <span class="stat-wrong">✗ ${s.wrong}</span>
+      <span class="stat-ambig">~ ${s.ambig}</span>
+      <span style="color:#d1d4dc">${total ? pct+'% 정답' : '평가 없음'}</span>
+      ${s.score ? '<span style="color:#787b86">자기평가 '+s.score+'/10</span>' : ''}
+      <span style="color:#787b86;margin-left:auto">${date}</span>
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════
+// SETUP
+// ═══════════════════════════════════════════════
+function initSetup() {
+  setupData = null;
+  document.getElementById('preview-info').textContent = '티커 입력 후 \'데이터 확인\'을 누르세요.';
+  document.getElementById('setup-err').textContent = '';
+
+  // populate blind year select (2000~current+1)
+  const yearSel = document.getElementById('s-blind-year');
+  yearSel.innerHTML = '';
+  const now = new Date().getFullYear();
+  for (let y = now + 1; y >= 2000; y--) {
+    yearSel.innerHTML += `<option value="${y}">${y}</option>`;
+  }
+  yearSel.value = String(now);
+}
+
+async function previewData() {
+  const ticker   = document.getElementById('s-ticker').value.trim().toUpperCase();
+  const period   = document.getElementById('s-period').value;
+  const start    = document.getElementById('s-start').value;
+  const end      = document.getElementById('s-end').value;
+  const interval = document.getElementById('s-interval').value;
+  if (!ticker) { document.getElementById('setup-err').textContent = '티커를 입력하세요'; return; }
+
+  document.getElementById('preview-info').textContent = '불러오는 중...';
+  document.getElementById('setup-err').textContent = '';
+
+  let url = `/api/chart?ticker=${ticker}&interval=${interval}`;
+  if (period) url += `&period=${period}`;
+  else if (start && end) url += `&start=${start}&end=${end}`;
+  else url += `&period=1y`;
+
+  try {
+    const data = await fetch(url).then(r => r.json());
+    if (data.error) { document.getElementById('preview-info').textContent = '오류: ' + data.error; return; }
+    setupData = data;
+    const first = new Date(data.candles[0].time * 1000);
+    const last  = new Date(data.candles[data.candles.length-1].time * 1000);
+    document.getElementById('preview-info').textContent =
+      `${data.name} · ${data.candles.length}봉 · ${fmt(first)} ~ ${fmt(last)}`;
+    // set blind year/month to middle of data range
+    const mid = new Date((data.candles[0].time + data.candles[data.candles.length-1].time) / 2 * 1000);
+    document.getElementById('s-blind-year').value  = String(mid.getFullYear());
+    document.getElementById('s-blind-month').value = String(mid.getMonth()+1).padStart(2,'0');
+  } catch(e) {
+    document.getElementById('preview-info').textContent = '오류: ' + e.message;
+  }
+}
+
+function setRandomBlind() {
+  if (!setupData) { previewData().then(setRandomBlind); return; }
+  const n     = setupData.candles.length;
+  const lo    = Math.floor(n * 0.2), hi = Math.floor(n * 0.85);
+  const idx   = lo + Math.floor(Math.random() * (hi - lo));
+  const dt    = new Date(setupData.candles[idx].time * 1000);
+  document.getElementById('s-blind-year').value  = String(dt.getFullYear());
+  document.getElementById('s-blind-month').value = String(dt.getMonth()+1).padStart(2,'0');
+}
+
+async function startSession() {
+  if (!setupData) { await previewData(); if (!setupData) return; }
+  const blindY = document.getElementById('s-blind-year').value;
+  const blindM = document.getElementById('s-blind-month').value;
+  const blindTs = new Date(`${blindY}-${blindM}-01`).getTime() / 1000;
+  let hide_idx = setupData.candles.findIndex(c => c.time >= blindTs);
+  if (hide_idx < 0) hide_idx = Math.floor(setupData.candles.length * 0.8);
+  if (hide_idx < 5) hide_idx = 5;
+
+  const res = await api.post('/api/sessions', {
+    ticker:   setupData.ticker,
+    name:     setupData.name,
+    interval: document.getElementById('s-interval').value,
+    candles:  setupData.candles,
+    hide_idx, total: setupData.candles.length,
+  });
+  if (res.error) { document.getElementById('setup-err').textContent = res.error; return; }
+
+  curSession = {
+    id: res.id,
+    ticker: setupData.ticker,
+    name: setupData.name,
+    interval: document.getElementById('s-interval').value,
+    candles: setupData.candles,
+    allData: setupData,
+    hide_idx,
+    total: setupData.candles.length,
+    correct: 0, wrong: 0, ambig: 0,
+  };
+  revealedIdx = hide_idx;
+  drawings    = [];
+  navigate('#practice');
+  initPractice();
+}
+
+// ═══════════════════════════════════════════════
+// PRACTICE
+// ═══════════════════════════════════════════════
+function initPractice() {
+  if (!curSession) return;
+  document.getElementById('practice-ticker').textContent = curSession.ticker;
+  document.getElementById('practice-info').textContent =
+    ` · ${curSession.interval} · ${curSession.total}봉`;
+  updatePracticeStatus();
+  document.getElementById('btn-reveal').disabled = false;
+  initCharts();
+  renderAll(revealedIdx);
+  mainChart.timeScale().fitContent();
+}
+
+function updatePracticeStatus() {
+  if (!curSession) return;
+  const { correct, wrong, ambig } = curSession;
+  const total = correct + wrong + ambig;
+  document.getElementById('practice-status').textContent =
+    `${revealedIdx}/${curSession.total}봉 공개` +
+    (total ? `  ✓${correct} ✗${wrong} ~${ambig}` : '');
+}
+
+function handleReveal() {
+  if (!curSession || evalPhase) return;
+  // show pre-eval drawer
+  evalState = {};
+  evalPhase = 'pre';
+  document.getElementById('eval-pre').style.display  = 'block';
+  document.getElementById('eval-post').style.display = 'none';
+  document.querySelectorAll('.eval-btn').forEach(b => b.classList.remove('on','on-ok','on-bad'));
+  document.getElementById('pre-note').value = '';
+  document.getElementById('eval-drawer').classList.add('open');
+}
+
+function closeEvalDrawer() {
+  evalPhase = null;
+  evalState = null;
+  document.getElementById('eval-drawer').classList.remove('open');
+}
+
+function submitPreEval() {
+  const trend = document.querySelector('.eval-btn[data-trend].on')?.dataset.trend;
+  const conf  = document.querySelector('.eval-btn[data-conf].on')?.dataset.conf;
+  if (!trend || !conf) { alert('추세와 확신도를 선택하세요'); return; }
+  evalState = { trend, conf, note: document.getElementById('pre-note').value };
+  // do reveal
+  const n = parseInt(document.getElementById('btn-reveal').dataset.n || '5') || 5;
+  revealedIdx = Math.min(revealedIdx + n, curSession.total);
+  renderAll(revealedIdx);
+  mainChart.timeScale().scrollToRealTime();
+  updatePracticeStatus();
+  // show post-eval
+  evalPhase = 'post';
+  document.getElementById('eval-pre').style.display  = 'none';
+  document.getElementById('eval-post').style.display = 'block';
+  const tMap = { up:'📈 상승', side:'➡ 횡보', down:'📉 하락' };
+  const cMap = { strong:'강한확신', confident:'확신', uncertain:'불확실', unknown:'알수없음' };
+  document.getElementById('eval-post-summary').textContent =
+    `예측: ${tMap[evalState.trend]} / ${cMap[evalState.conf]}`;
+  document.querySelectorAll('[data-post]').forEach(b => b.classList.remove('on','on-ok','on-bad'));
+  if (revealedIdx >= curSession.total) {
+    document.getElementById('btn-reveal').disabled = true;
+  }
+}
+
+document.querySelectorAll('[data-post]').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    document.querySelectorAll('[data-post]').forEach(b => b.classList.remove('on','on-ok','on-bad'));
+    const ev = btn.dataset.post;
+    btn.classList.add(ev === 'correct' ? 'on-ok' : ev === 'wrong' ? 'on-bad' : 'on');
+    // save
+    if (!curSession) return;
+    const res = await api.post(`/api/sessions/${curSession.id}/reveals`, {
+      shown: revealedIdx,
+      trend: evalState.trend,
+      conf:  evalState.conf,
+      eval:  ev,
+      note:  evalState.note || '',
+    });
+    if (ev === 'correct') curSession.correct++;
+    else if (ev === 'wrong') curSession.wrong++;
+    else curSession.ambig++;
+    updatePracticeStatus();
+    setTimeout(() => {
+      closeEvalDrawer();
+    }, 600);
+  });
 });
 
-function createSubChart(elId) {
-  const el = document.getElementById(elId);
-  const c  = LightweightCharts.createChart(el, {
-    ...CHART_OPTS(),
-    width: el.clientWidth,
-    height: el.clientHeight,
+// 공개 봉 수 — 헤더에서 변경 가능하게
+document.getElementById('btn-reveal').dataset.n = '5';
+
+function showFinalModal() {
+  const { correct, wrong, ambig } = curSession;
+  const total = correct + wrong + ambig;
+  const pct   = total ? Math.round(correct / total * 100) : '-';
+  document.getElementById('final-stats-display').innerHTML =
+    `정답 <b style="color:#26a69a">${correct}</b> · 틀림 <b style="color:#ef5350">${wrong}</b> · 모호 <b style="color:#ffd54f">${ambig}</b><br>` +
+    `정답률: <b>${total ? pct+'%' : '평가 없음'}</b>`;
+  document.getElementById('final-note').value  = '';
+  document.getElementById('final-score').value = '5';
+  document.getElementById('final-modal').classList.add('open');
+}
+
+function closeFinalModal() {
+  document.getElementById('final-modal').classList.remove('open');
+}
+
+async function submitFinalEval() {
+  if (!curSession) return;
+  const score = parseInt(document.getElementById('final-score').value) || 5;
+  const note  = document.getElementById('final-note').value.trim();
+  const now   = new Date().toISOString();
+  await api.patch(`/api/sessions/${curSession.id}`, {
+    status: 'ended', score, note, ended: now,
   });
-  return c;
+  closeFinalModal();
+  curSession = null;
+  navigate('#home');
+}
+
+function confirmLeave() {
+  if (!curSession) { navigate('#home'); return; }
+  if (confirm('세션이 진행 중입니다. 저장하지 않고 나가시겠어요?')) {
+    curSession = null;
+    navigate('#home');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// HISTORY
+// ═══════════════════════════════════════════════
+async function loadHistory() {
+  const sessions = await api.get('/api/sessions');
+  const el = document.getElementById('history-list');
+  if (!Array.isArray(sessions) || !sessions.length) {
+    el.innerHTML = '<div style="color:#787b86;padding:20px">세션 기록이 없습니다.</div>';
+    return;
+  }
+  el.innerHTML = sessions.map(s => sessionCard(s)).join('');
+}
+
+// ═══════════════════════════════════════════════
+// DETAIL
+// ═══════════════════════════════════════════════
+async function loadDetail(hash) {
+  const id = parseInt(new URLSearchParams(hash.replace('#detail?','?')).get('id'));
+  if (!id) { navigate('#history'); return; }
+  const s = await api.get(`/api/sessions/${id}`);
+  if (s.error) { navigate('#history'); return; }
+  document.getElementById('detail-title').textContent = `${s.ticker} 세션`;
+  const total = s.correct + s.wrong + s.ambig;
+  const pct   = total ? Math.round(s.correct / total * 100) : '-';
+  const el    = document.getElementById('detail-content');
+  el.innerHTML = `
+    <div class="detail-meta">
+      <div class="meta-item"><label>티커</label><span>${s.ticker} (${s.name || ''})</span></div>
+      <div class="meta-item"><label>봉 단위</label><span>${s.interval}</span></div>
+      <div class="meta-item"><label>총 봉 수</label><span>${s.total}</span></div>
+      <div class="meta-item"><label>블라인드 시작</label><span>${s.hide_idx}번째 봉</span></div>
+      <div class="meta-item"><label>정답률</label><span style="color:#26a69a">${total ? pct+'%' : '-'}</span></div>
+      <div class="meta-item"><label>자기평가</label><span>${s.score ? s.score+'/10' : '-'}</span></div>
+      <div class="meta-item"><label>세션 시작</label><span>${s.created.slice(0,10)}</span></div>
+      <div class="meta-item"><label>상태</label><span>${s.status === 'active' ? '진행 중' : '종료'}</span></div>
+    </div>
+    ${s.note ? `<div style="background:#1e222d;border-radius:6px;padding:12px;font-size:13px;color:#d1d4dc"><b>총평:</b><br>${s.note}</div>` : ''}
+    <div class="section-title">공개 기록 (${s.reveals.length}회)</div>
+    ${s.reveals.length ? s.reveals.map(revealCard).join('') : '<div style="color:#787b86;font-size:12px">공개 기록 없음</div>'}
+    ${s.status === 'active' ? `<button class="btn-primary" onclick="resumeSession(${s.id})">이어서 연습</button>` : ''}
+  `;
+}
+
+function revealCard(r) {
+  const tMap = { up:'📈 상승', side:'➡ 횡보', down:'📉 하락' };
+  const cMap = { strong:'강한확신', confident:'확신', uncertain:'불확실', unknown:'알수없음' };
+  const eMap = { correct:'✓ 맞음', ambig:'~ 모호함', wrong:'✗ 틀림' };
+  const cls  = r.eval || '';
+  return `<div class="reveal-item ${cls}">
+    <div class="reveal-header">
+      <span class="reveal-num">${r.num}차 공개</span>
+      <div class="reveal-tags">
+        ${r.trend ? `<span class="tag">${tMap[r.trend]||r.trend}</span>` : ''}
+        ${r.conf  ? `<span class="tag">${cMap[r.conf]||r.conf}</span>` : ''}
+        ${r.eval  ? `<span class="tag">${eMap[r.eval]||r.eval}</span>` : ''}
+      </div>
+    </div>
+    ${r.note ? `<div class="reveal-note">${r.note}</div>` : ''}
+  </div>`;
+}
+
+async function resumeSession(id) {
+  const s = await api.get(`/api/sessions/${id}`);
+  if (s.error) return;
+  curSession = {
+    id: s.id, ticker: s.ticker, name: s.name, interval: s.interval,
+    candles: s.candles, allData: null,
+    hide_idx: s.hide_idx, total: s.total,
+    correct: s.correct, wrong: s.wrong, ambig: s.ambig,
+  };
+  // allData stub — compute indicators from stored candles
+  curSession.allData = buildAllData(s.candles);
+  revealedIdx = s.candles.length; // resume from where they were (last candle of stored)
+  // find last reveal's shown count
+  if (s.reveals.length) {
+    revealedIdx = s.reveals[s.reveals.length-1].shown;
+  } else {
+    revealedIdx = s.hide_idx;
+  }
+  drawings = [];
+  navigate('#practice');
+  initPractice();
+}
+
+// ═══════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════
+async function loadSettings() {
+  const res = await api.get('/api/me');
+  if (res.error) return;
+  settings = res.settings || {};
+  const ma = settings.ma || [5,20,60,120,200];
+  const inputs = document.querySelectorAll('.ma-input');
+  inputs.forEach((inp, i) => { if (ma[i]) inp.value = ma[i]; });
+}
+
+async function saveSettings() {
+  const ma = [...document.querySelectorAll('.ma-input')].map(i => parseInt(i.value)||0).filter(v => v > 0);
+  const res = await api.patch('/api/me/settings', { ma });
+  if (res.error) { document.getElementById('settings-err').textContent = res.error; return; }
+  settings = res.settings;
+  document.getElementById('settings-err').textContent = '저장됐습니다.';
+  setTimeout(() => { document.getElementById('settings-err').textContent = ''; }, 2000);
+}
+
+async function changePw() {
+  const pw = document.getElementById('new-pw').value;
+  if (pw.length < 4) { document.getElementById('pw-err').textContent = '4자 이상 입력'; return; }
+  // TODO: implement change password endpoint
+  document.getElementById('pw-err').textContent = '(기능 준비 중)';
+}
+
+// ═══════════════════════════════════════════════
+// CHART SYSTEM
+// ═══════════════════════════════════════════════
+const CHART_BASE = () => ({
+  layout: { background:{color:'#131722'}, textColor:'#787b86' },
+  grid:   { vertLines:{color:'#1e222d'}, horzLines:{color:'#1e222d'} },
+  crosshair: { mode:1 },
+  timeScale: { timeVisible:true, borderColor:'#2a2e39' },
+  rightPriceScale: { borderColor:'#2a2e39' },
+});
+
+function mkChart(elId) {
+  const el = document.getElementById(elId);
+  el.innerHTML = '';
+  return LightweightCharts.createChart(el, { ...CHART_BASE(), width:el.clientWidth, height:el.clientHeight });
 }
 
 function initCharts() {
-  const mainEl = document.getElementById('main-chart');
-  mainEl.innerHTML = '';
+  document.getElementById('main-chart').innerHTML = '';
   ['chart-rsi','chart-macd','chart-stoch','chart-obv'].forEach(id => {
     document.getElementById(id).innerHTML = '';
   });
 
-  mainChart = LightweightCharts.createChart(mainEl, {
-    ...CHART_OPTS(),
-    width: mainEl.clientWidth,
-    height: mainEl.clientHeight,
-  });
+  mainChart  = mkChart('main-chart');
+  rsiChart   = mkChart('chart-rsi');
+  macdChart  = mkChart('chart-macd');
+  stochChart = mkChart('chart-stoch');
+  obvChart   = mkChart('chart-obv');
 
   candleSeries = mainChart.addCandlestickSeries({
     upColor:'#26a69a', downColor:'#ef5350',
@@ -274,219 +960,322 @@ function initCharts() {
     wickUpColor:'#26a69a', wickDownColor:'#ef5350',
   });
 
-  rsiChart   = createSubChart('chart-rsi');
-  macdChart  = createSubChart('chart-macd');
-  stochChart = createSubChart('chart-stoch');
-  obvChart   = createSubChart('chart-obv');
+  rsiLine = rsiChart.addLineSeries({ color:'#ff8a65', lineWidth:1, title:'RSI', lastValueVisible:true });
+  rsiOb   = rsiChart.addLineSeries({ color:'#ef535066', lineWidth:1, lineStyle:2, lastValueVisible:false });
+  rsiOs   = rsiChart.addLineSeries({ color:'#26a69a66', lineWidth:1, lineStyle:2, lastValueVisible:false });
 
-  rsiLine  = rsiChart.addLineSeries({ color:'#ff8a65', lineWidth:1 });
-  rsiOb    = rsiChart.addLineSeries({ color:'#ef535088', lineWidth:1, lineStyle:2 });
-  rsiOs    = rsiChart.addLineSeries({ color:'#26a69a88', lineWidth:1, lineStyle:2 });
+  macdLine = macdChart.addLineSeries({ color:'#ce93d8', lineWidth:1, title:'MACD', lastValueVisible:true });
+  macdSig  = macdChart.addLineSeries({ color:'#ffeb3b', lineWidth:1, title:'Signal', lastValueVisible:true });
+  macdHist = macdChart.addHistogramSeries({ color:'#26a69a', lastValueVisible:false });
 
-  macdLine = macdChart.addLineSeries({ color:'#ce93d8', lineWidth:1 });
-  macdSig  = macdChart.addLineSeries({ color:'#ffeb3b', lineWidth:1 });
-  macdHist = macdChart.addHistogramSeries({ color:'#26a69a', priceFormat:{type:'price', precision:4} });
+  stochK  = stochChart.addLineSeries({ color:'#80deea', lineWidth:1, title:'%K', lastValueVisible:true });
+  stochD  = stochChart.addLineSeries({ color:'#f48024', lineWidth:1, title:'%D', lastValueVisible:true });
+  stochOb = stochChart.addLineSeries({ color:'#ef535066', lineWidth:1, lineStyle:2, lastValueVisible:false });
+  stochOs = stochChart.addLineSeries({ color:'#26a69a66', lineWidth:1, lineStyle:2, lastValueVisible:false });
 
-  stochK   = stochChart.addLineSeries({ color:'#80deea', lineWidth:1 });
-  stochD   = stochChart.addLineSeries({ color:'#f48024', lineWidth:1 });
-  stochOb  = stochChart.addLineSeries({ color:'#ef535066', lineWidth:1, lineStyle:2 });
-  stochOs  = stochChart.addLineSeries({ color:'#26a69a66', lineWidth:1, lineStyle:2 });
+  obvLine = obvChart.addLineSeries({ color:'#a5d6a7', lineWidth:1, title:'OBV', lastValueVisible:true });
 
-  obvLine  = obvChart.addLineSeries({ color:'#a5d6a7', lineWidth:1 });
-
-  syncTimeScales([mainChart, rsiChart, macdChart, stochChart, obvChart]);
+  syncTime([mainChart, rsiChart, macdChart, stochChart, obvChart]);
   initOverlay();
-  setupResize();
+  setupResizeHandles();
+  setupChartResize();
 }
 
-function syncTimeScales(charts) {
+function syncTime(charts) {
   charts.forEach(src => {
     src.timeScale().subscribeVisibleLogicalRangeChange(range => {
       if (!range) return;
-      charts.forEach(tgt => {
-        if (tgt !== src) try { tgt.timeScale().setVisibleLogicalRange(range); } catch(e) {}
-      });
+      charts.forEach(tgt => { if (tgt !== src) try{ tgt.timeScale().setVisibleLogicalRange(range); }catch(e){} });
     });
   });
 }
 
-function setupResize() {
-  const mainWrap = document.getElementById('main-wrap');
+function setupChartResize() {
   const ro = new ResizeObserver(() => {
     const mainEl = document.getElementById('main-chart');
-    mainChart.applyOptions({ width: mainEl.clientWidth, height: mainEl.clientHeight });
+    if (mainChart) mainChart.applyOptions({ width:mainEl.clientWidth, height:mainEl.clientHeight });
     ['rsi','macd','stoch','obv'].forEach(k => {
-      const el = document.getElementById('chart-' + k);
-      if (el.parentElement.style.display !== 'none') {
-        const c = {rsi:rsiChart, macd:macdChart, stoch:stochChart, obv:obvChart}[k];
-        c.applyOptions({ width: el.clientWidth, height: el.clientHeight });
-      }
+      const el = document.getElementById('chart-'+k);
+      const c  = {rsi:rsiChart,macd:macdChart,stoch:stochChart,obv:obvChart}[k];
+      if (c && el.parentElement.style.display!=='none')
+        c.applyOptions({ width:el.clientWidth, height:el.clientHeight });
     });
     resizeOverlay();
   });
-  ro.observe(mainWrap);
+  ro.observe(document.getElementById('main-wrap'));
 }
 
-// ═══════════════════════════════════════════════
-// DATA LOADING
-// ═══════════════════════════════════════════════
-async function loadData() {
-  const ticker   = document.getElementById('ticker').value.trim().toUpperCase();
-  const period   = document.getElementById('period').value;
-  const interval = document.getElementById('interval').value;
-  const start    = document.getElementById('date-start').value;
-  const end      = document.getElementById('date-end').value;
-
-  if (!ticker) return;
-  setStatus('불러오는 중...');
-
-  let url = `/api/chart?ticker=${ticker}&interval=${interval}`;
-  if (period) {
-    url += `&period=${period}`;
-  } else if (start && end) {
-    url += `&start=${start}&end=${end}`;
-  } else {
-    url += `&period=1y`;
-  }
-
-  try {
-    const res  = await fetch(url);
-    const data = await res.json();
-    if (data.error) { setStatus('오류: ' + data.error); return; }
-
-    allData      = data;
-    practiceMode = false;
-    revealedIdx  = data.candles.length;
-    renderAll(revealedIdx);
-    mainChart.timeScale().fitContent();
-    setStatus(`${data.name} · ${data.candles.length}봉`);
-    document.getElementById('btn-reveal').disabled     = true;
-    document.getElementById('btn-reveal-all').disabled = true;
-  } catch(e) {
-    setStatus('오류: ' + e.message);
-  }
+// ── Resize handles ──
+let resizeState = null;
+function setupResizeHandles() {
+  document.querySelectorAll('.resize-handle').forEach(h => {
+    h.addEventListener('mousedown', e => {
+      const tgt = document.getElementById(h.dataset.target);
+      if (!tgt || tgt.style.display==='none') return;
+      resizeState = { tgt, startY:e.clientY, startH:tgt.offsetHeight };
+      h.classList.add('dragging');
+      e.preventDefault();
+    });
+    h.addEventListener('touchstart', e => {
+      const tgt = document.getElementById(h.dataset.target);
+      if (!tgt || tgt.style.display==='none') return;
+      const t = e.touches[0];
+      resizeState = { tgt, startY:t.clientY, startH:tgt.offsetHeight };
+      h.classList.add('dragging');
+      e.preventDefault();
+    }, { passive:false });
+  });
+  const onMove = (clientY) => {
+    if (!resizeState) return;
+    const delta = clientY - resizeState.startY;
+    const newH  = Math.max(60, resizeState.startH + delta);
+    resizeState.tgt.style.height = newH + 'px';
+    const chartEl = resizeState.tgt.querySelector('[id^="chart-"]');
+    if (chartEl) {
+      const c = {rsi:rsiChart,macd:macdChart,stoch:stochChart,obv:obvChart}[chartEl.id.replace('chart-','')];
+      if (c) c.applyOptions({ height: newH });
+    }
+  };
+  const onUp = () => {
+    if (!resizeState) return;
+    document.querySelectorAll('.resize-handle').forEach(h => h.classList.remove('dragging'));
+    resizeState = null;
+  };
+  document.addEventListener('mousemove', e => onMove(e.clientY));
+  document.addEventListener('mouseup',   onUp);
+  document.addEventListener('touchmove', e => { if(resizeState) { onMove(e.touches[0].clientY); e.preventDefault(); } }, { passive:false });
+  document.addEventListener('touchend',  onUp);
 }
 
-// ═══════════════════════════════════════════════
-// RENDER
-// ═══════════════════════════════════════════════
+// ── Render all ──
 function renderAll(upTo) {
-  if (!allData) return;
-  const candles = allData.candles.slice(0, upTo);
+  if (!curSession?.allData || !candleSeries) return;
+  const d      = curSession.allData;
+  const candles = d.candles.slice(0, upTo);
   if (!candles.length) return;
-  const maxTime = candles[candles.length - 1].time;
+  const maxTime = candles[candles.length-1].time;
 
   candleSeries.setData(candles);
 
-  // 거래량
+  // volume
   if (volSeries) { mainChart.removeSeries(volSeries); volSeries = null; }
   if (active.vol) {
-    volSeries = mainChart.addHistogramSeries({
-      priceFormat: { type: 'volume' }, priceScaleId: 'vol', color: '#434651',
-    });
-    mainChart.priceScale('vol').applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
-    volSeries.setData(candles.map(c => ({
-      time: c.time, value: c.volume,
-      color: c.close >= c.open ? '#26a69a55' : '#ef535055',
-    })));
+    volSeries = mainChart.addHistogramSeries({ priceFormat:{type:'volume'}, priceScaleId:'vol', lastValueVisible:false });
+    mainChart.priceScale('vol').applyOptions({ scaleMargins:{top:0.85,bottom:0} });
+    volSeries.setData(candles.map(c => ({ time:c.time, value:c.volume, color: c.close>=c.open?'#26a69a44':'#ef535044' })));
   }
 
   // MA
   Object.values(maSeries).forEach(s => mainChart.removeSeries(s));
   maSeries = {};
   const maColors = {'5':'#f48024','20':'#26c6da','60':'#ab47bc','120':'#ef5350','200':'#66bb6a'};
-  [5,20,60,120,200].forEach(n => {
-    if (!active['ma'+n]) return;
-    const s = mainChart.addLineSeries({ color:maColors[n], lineWidth:1, lastValueVisible:false, priceLineVisible:false });
-    s.setData(clip(allData.mas[String(n)], maxTime));
-    maSeries[n] = s;
+  const maPeriods = settings.ma || [5,20,60,120,200];
+  maPeriods.forEach((p,i) => {
+    const key = 'ma'+p;
+    if (!active[key] && !active['ma'+[5,20,60,120,200][i]]) return;
+    // check if this period is one of the active ones
+    const activeKey = Object.keys(active).find(k => k==='ma'+p && active[k]);
+    if (!activeKey) return;
+    const s = mainChart.addLineSeries({ color:maColors[String(p)]||'#aaa', lineWidth:1,
+      title:'MA'+p, lastValueVisible:true, priceLineVisible:false });
+    s.setData(clip(computeMA(d.candles, p), maxTime));
+    maSeries[p] = s;
   });
 
-  // 볼린저
+  // Bollinger
   Object.values(bbSeries).forEach(s => mainChart.removeSeries(s));
   bbSeries = {};
   if (active.bb) {
-    const bb = allData.bollinger;
-    bbSeries.up  = addLine(mainChart, '#ffd54f', 1, false);
-    bbSeries.mid = addLine(mainChart, '#ffd54f66', 1, false, 2);
-    bbSeries.lo  = addLine(mainChart, '#ffd54f', 1, false);
+    const bb = computeBB(d.candles);
+    bbSeries.up  = mainChart.addLineSeries({ color:'#ffd54f', lineWidth:1, title:'BB上', lastValueVisible:true, priceLineVisible:false });
+    bbSeries.mid = mainChart.addLineSeries({ color:'#ffd54f88', lineWidth:1, lineStyle:2, lastValueVisible:false, priceLineVisible:false });
+    bbSeries.lo  = mainChart.addLineSeries({ color:'#ffd54f', lineWidth:1, title:'BB下', lastValueVisible:true, priceLineVisible:false });
     bbSeries.up.setData(clip(bb.upper, maxTime));
     bbSeries.mid.setData(clip(bb.mid, maxTime));
     bbSeries.lo.setData(clip(bb.lower, maxTime));
   }
 
-  // 일목
+  // Ichimoku
   Object.values(ichiSeries).forEach(s => mainChart.removeSeries(s));
   ichiSeries = {};
   if (active.ichi) {
-    const colors = {tenkan:'#ef5350', kijun:'#26a69a', senkou_a:'#80cbc466', senkou_b:'#ef535066', chikou:'#ba68c8'};
-    Object.entries(colors).forEach(([k, c]) => {
-      ichiSeries[k] = addLine(mainChart, c, 1, false);
-      ichiSeries[k].setData(clip(allData.ichimoku[k], maxTime));
+    const ich = computeIchi(d.candles);
+    [['tenkan','#ef5350','전환'],['kijun','#26a69a','기준'],['senkou_a','#80cbc466','선행A'],['senkou_b','#ef535066','선행B'],['chikou','#ba68c8','후행']].forEach(([k,c,t]) => {
+      ichiSeries[k] = mainChart.addLineSeries({ color:c, lineWidth:1, title:t, lastValueVisible:true, priceLineVisible:false });
+      ichiSeries[k].setData(clip(ich[k], maxTime));
     });
   }
 
   // RSI
-  toggleSub('sub-rsi', active.rsi, rsiChart, 'chart-rsi');
+  const subRsi = document.getElementById('sub-rsi');
+  subRsi.style.display = active.rsi ? 'block' : 'none';
   if (active.rsi) {
-    const d = clip(allData.rsi, maxTime);
-    rsiLine.setData(d);
-    setLevelLines(rsiOb, rsiOs, d, 70, 30);
+    const rsiData = clip(computeRSI(d.candles), maxTime);
+    rsiLine.setData(rsiData);
+    setLevel(rsiOb, rsiOs, rsiData, 70, 30);
+    rsiChart.applyOptions({ width: document.getElementById('chart-rsi').clientWidth, height: subRsi.offsetHeight });
   }
 
   // MACD
-  toggleSub('sub-macd', active.macd, macdChart, 'chart-macd');
+  const subMacd = document.getElementById('sub-macd');
+  subMacd.style.display = active.macd ? 'block' : 'none';
   if (active.macd) {
-    macdLine.setData(clip(allData.macd.macd, maxTime));
-    macdSig.setData(clip(allData.macd.signal, maxTime));
-    macdHist.setData(clip(allData.macd.histogram, maxTime).map(d => ({
-      ...d, color: d.value >= 0 ? '#26a69a' : '#ef5350',
-    })));
+    const mac = computeMACD(d.candles);
+    macdLine.setData(clip(mac.macd, maxTime));
+    macdSig.setData(clip(mac.signal, maxTime));
+    macdHist.setData(clip(mac.hist, maxTime).map(v => ({ ...v, color:v.value>=0?'#26a69a':'#ef5350' })));
+    macdChart.applyOptions({ width: document.getElementById('chart-macd').clientWidth, height: subMacd.offsetHeight });
   }
 
   // Stochastic
-  toggleSub('sub-stoch', active.stoch, stochChart, 'chart-stoch');
+  const subStoch = document.getElementById('sub-stoch');
+  subStoch.style.display = active.stoch ? 'block' : 'none';
   if (active.stoch) {
-    const dk = clip(allData.stochastic.k, maxTime);
-    const dd = clip(allData.stochastic.d, maxTime);
-    stochK.setData(dk);
-    stochD.setData(dd);
-    setLevelLines(stochOb, stochOs, dk, 80, 20);
+    const st = computeStoch(d.candles);
+    stochK.setData(clip(st.k, maxTime));
+    stochD.setData(clip(st.d, maxTime));
+    setLevel(stochOb, stochOs, clip(st.k, maxTime), 80, 20);
+    stochChart.applyOptions({ width: document.getElementById('chart-stoch').clientWidth, height: subStoch.offsetHeight });
   }
 
   // OBV
-  toggleSub('sub-obv', active.obv, obvChart, 'chart-obv');
+  const subObv = document.getElementById('sub-obv');
+  subObv.style.display = active.obv ? 'block' : 'none';
   if (active.obv) {
-    obvLine.setData(clip(allData.obv, maxTime));
+    obvLine.setData(clip(computeOBV(d.candles), maxTime));
+    obvChart.applyOptions({ width: document.getElementById('chart-obv').clientWidth, height: subObv.offsetHeight });
   }
 
   renderDrawings();
 }
 
-function clip(arr, maxTime) {
-  return arr.filter(d => d.time <= maxTime);
-}
-
-function addLine(chart, color, lineWidth=1, lastValue=false, lineStyle=0) {
-  return chart.addLineSeries({ color, lineWidth, lastValueVisible: lastValue, priceLineVisible: false, lineStyle });
-}
-
-function setLevelLines(obSeries, osSeries, data, obLevel, osLevel) {
+function clip(arr, maxTime) { return arr.filter(d => d.time <= maxTime); }
+function setLevel(s1, s2, data, v1, v2) {
   if (!data.length) return;
   const t1 = data[0].time, t2 = data[data.length-1].time;
-  obSeries.setData([{time:t1,value:obLevel},{time:t2,value:obLevel}]);
-  osSeries.setData([{time:t1,value:osLevel},{time:t2,value:osLevel}]);
+  s1.setData([{time:t1,value:v1},{time:t2,value:v1}]);
+  s2.setData([{time:t1,value:v2},{time:t2,value:v2}]);
 }
 
-function toggleSub(subId, show, chart, chartElId) {
-  const subEl   = document.getElementById(subId);
-  const chartEl = document.getElementById(chartElId);
-  subEl.style.display = show ? 'block' : 'none';
-  if (show) {
-    requestAnimationFrame(() => {
-      chart.applyOptions({ width: chartEl.clientWidth, height: chartEl.clientHeight });
-    });
+// ═══════════════════════════════════════════════
+// CLIENT-SIDE INDICATOR COMPUTATION
+// ═══════════════════════════════════════════════
+function computeMA(candles, period) {
+  const result = [];
+  for (let i = period-1; i < candles.length; i++) {
+    let sum = 0;
+    for (let j = i-period+1; j <= i; j++) sum += candles[j].close;
+    result.push({ time: candles[i].time, value: +(sum/period).toFixed(4) });
   }
+  return result;
+}
+
+function computeBB(candles, period=20, dev=2) {
+  const mid=[], upper=[], lower=[];
+  for (let i = period-1; i < candles.length; i++) {
+    const slice = candles.slice(i-period+1, i+1).map(c => c.close);
+    const mean  = slice.reduce((a,b) => a+b) / period;
+    const std   = Math.sqrt(slice.reduce((a,b) => a+(b-mean)**2, 0) / period);
+    const t = candles[i].time;
+    mid.push({time:t, value:+mean.toFixed(4)});
+    upper.push({time:t, value:+(mean+dev*std).toFixed(4)});
+    lower.push({time:t, value:+(mean-dev*std).toFixed(4)});
+  }
+  return {mid, upper, lower};
+}
+
+function computeIchi(candles) {
+  const result = { tenkan:[], kijun:[], senkou_a:[], senkou_b:[], chikou:[] };
+  for (let i = 0; i < candles.length; i++) {
+    const hi = (n) => {
+      let h = -Infinity;
+      for (let j = Math.max(0, i-n+1); j <= i; j++) h = Math.max(h, candles[j].high);
+      return h;
+    };
+    const lo = (n) => {
+      let l = Infinity;
+      for (let j = Math.max(0, i-n+1); j <= i; j++) l = Math.min(l, candles[j].low);
+      return l;
+    };
+    const t = candles[i].time;
+    if (i >= 8)  result.tenkan.push({time:t, value:+((hi(9)+lo(9))/2).toFixed(4)});
+    if (i >= 25) result.kijun.push({time:t, value:+((hi(26)+lo(26))/2).toFixed(4)});
+    if (i >= 25) {
+      const ten = result.tenkan.find(x => x.time === candles[i-26]?.time);
+      const kij = result.kijun.find(x => x.time === candles[i-26]?.time);
+      if (ten && kij) result.senkou_a.push({time:t, value:+((ten.value+kij.value)/2).toFixed(4)});
+    }
+    if (i >= 51) result.senkou_b.push({time:t, value:+((hi(52)+lo(52))/2).toFixed(4)});
+    if (i + 26 < candles.length) result.chikou.push({time:candles[i+26].time, value:+candles[i].close.toFixed(4)});
+  }
+  return result;
+}
+
+function computeRSI(candles, period=14) {
+  const result = [];
+  for (let i = period; i < candles.length; i++) {
+    let gain=0, loss=0;
+    for (let j = i-period+1; j <= i; j++) {
+      const d = candles[j].close - candles[j-1].close;
+      if (d > 0) gain += d; else loss -= d;
+    }
+    const rs = gain / (loss || 0.001);
+    result.push({ time: candles[i].time, value: +(100 - 100/(1+rs)).toFixed(2) });
+  }
+  return result;
+}
+
+function computeMACD(candles, fast=12, slow=26, sig=9) {
+  const closes = candles.map(c => c.close);
+  const ema = (data, n) => {
+    const k = 2/(n+1), out = [data[0]];
+    for (let i = 1; i < data.length; i++) out.push(data[i]*k + out[i-1]*(1-k));
+    return out;
+  };
+  const f = ema(closes, fast), s = ema(closes, slow);
+  const macdVals = closes.map((_,i) => f[i]-s[i]);
+  const sigVals  = ema(macdVals.slice(slow-1), sig);
+  const result   = { macd:[], signal:[], hist:[] };
+  for (let i = slow-1; i < candles.length; i++) {
+    const t = candles[i].time;
+    const m = macdVals[i];
+    const sv = sigVals[i-(slow-1)];
+    result.macd.push({time:t, value:+m.toFixed(4)});
+    result.signal.push({time:t, value:+sv.toFixed(4)});
+    result.hist.push({time:t, value:+(m-sv).toFixed(4)});
+  }
+  return result;
+}
+
+function computeStoch(candles, kp=14, dp=3) {
+  const k=[], d=[];
+  for (let i = kp-1; i < candles.length; i++) {
+    const slice = candles.slice(i-kp+1, i+1);
+    const lo = Math.min(...slice.map(c => c.low));
+    const hi = Math.max(...slice.map(c => c.high));
+    k.push({ time:candles[i].time, value: hi===lo ? 50 : +(100*(candles[i].close-lo)/(hi-lo)).toFixed(2) });
+  }
+  for (let i = dp-1; i < k.length; i++) {
+    d.push({ time:k[i].time, value:+(k.slice(i-dp+1,i+1).reduce((a,b) => a+b.value, 0)/dp).toFixed(2) });
+  }
+  return {k,d};
+}
+
+function computeOBV(candles) {
+  const result = [];
+  let obv = 0;
+  for (let i = 0; i < candles.length; i++) {
+    if (i > 0) {
+      if (candles[i].close > candles[i-1].close) obv += candles[i].volume;
+      else if (candles[i].close < candles[i-1].close) obv -= candles[i].volume;
+    }
+    result.push({ time:candles[i].time, value:obv });
+  }
+  return result;
+}
+
+function buildAllData(candles) {
+  return { candles, mas:{}, bollinger:{}, ichimoku:{}, rsi:[], macd:{}, stochastic:{}, obv:[] };
 }
 
 // ═══════════════════════════════════════════════
@@ -497,404 +1286,252 @@ function initOverlay() {
   ctx     = overlay.getContext('2d');
   resizeOverlay();
 
-  overlay.addEventListener('mousedown',  e => onPtrDown(e.offsetX, e.offsetY, e.button));
-  overlay.addEventListener('mousemove',  e => onPtrMove(e.offsetX, e.offsetY));
-  overlay.addEventListener('mouseup',    e => onPtrUp(e.offsetX, e.offsetY));
+  overlay.addEventListener('mousedown',  e => onDown(e.offsetX, e.offsetY, e.button));
+  overlay.addEventListener('mousemove',  e => onMove(e.offsetX, e.offsetY));
+  overlay.addEventListener('mouseup',    e => onUp(e.offsetX, e.offsetY));
+  overlay.addEventListener('touchstart', e => { e.preventDefault(); const p=getTp(e); onDown(p.x,p.y,0); }, {passive:false});
+  overlay.addEventListener('touchmove',  e => { e.preventDefault(); const p=getTp(e); onMove(p.x,p.y); }, {passive:false});
+  overlay.addEventListener('touchend',   e => { e.preventDefault(); const p=getTp(e); onUp(p.x,p.y); }, {passive:false});
 
-  overlay.addEventListener('touchstart', e => {
-    if (drawMode === 'pointer') return;
-    e.preventDefault();
-    const pt = getTouchPt(e);
-    onPtrDown(pt.x, pt.y, 0);
-  }, { passive: false });
-  overlay.addEventListener('touchmove', e => {
-    if (drawMode === 'pointer' || !curDraw) return;
-    e.preventDefault();
-    const pt = getTouchPt(e);
-    onPtrMove(pt.x, pt.y);
-  }, { passive: false });
-  overlay.addEventListener('touchend', e => {
-    if (drawMode === 'pointer') return;
-    e.preventDefault();
-    const pt = getTouchPt(e);
-    onPtrUp(pt.x, pt.y);
-  }, { passive: false });
-
-  mainChart.timeScale().subscribeVisibleLogicalRangeChange(() => renderDrawings());
-  mainChart.subscribeCrosshairMove(() => renderDrawings());
+  if (mainChart) {
+    mainChart.timeScale().subscribeVisibleLogicalRangeChange(renderDrawings);
+    mainChart.subscribeCrosshairMove(renderDrawings);
+  }
 }
 
-function getTouchPt(e) {
-  const t    = e.touches[0] || e.changedTouches[0];
-  const rect = overlay.getBoundingClientRect();
-  return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+function getTp(e) {
+  const t=e.touches[0]||e.changedTouches[0], r=overlay.getBoundingClientRect();
+  return { x:t.clientX-r.left, y:t.clientY-r.top };
 }
 
 function resizeOverlay() {
-  const dpr  = window.devicePixelRatio || 1;
-  const rect = document.getElementById('main-wrap').getBoundingClientRect();
-  overlayDpr = dpr;
-  overlay.width  = rect.width  * dpr;
-  overlay.height = rect.height * dpr;
-  overlay.style.width  = rect.width  + 'px';
-  overlay.style.height = rect.height + 'px';
+  if (!overlay) return;
+  const dpr = window.devicePixelRatio || 1;
+  const r   = document.getElementById('main-wrap').getBoundingClientRect();
+  overlay.width  = r.width  * dpr;
+  overlay.height = r.height * dpr;
+  overlay.style.width  = r.width  + 'px';
+  overlay.style.height = r.height + 'px';
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   renderDrawings();
 }
 
-// px → price/time
-function toChartCoords(x, y) {
-  const time  = mainChart.timeScale().coordinateToTime(x);
-  const price = candleSeries.coordinateToPrice(y);
-  return { time, price };
+function px2chart(x, y) {
+  return { time: mainChart?.timeScale().coordinateToTime(x),
+           price: candleSeries?.coordinateToPrice(y) };
 }
-// price/time → px
-function toPx(time, price) {
-  const x = mainChart.timeScale().timeToCoordinate(time);
-  const y = candleSeries.priceToCoordinate(price);
-  return { x, y };
+function chart2px(time, price) {
+  return { x: time  != null ? mainChart?.timeScale().timeToCoordinate(time)  : null,
+           y: price != null ? candleSeries?.priceToCoordinate(price)          : null };
 }
 
-function onPtrDown(x, y, btn) {
+function onDown(x, y, btn) {
   if (drawMode === 'pointer') return;
-
-  if (drawMode === 'del') {
-    deleteNearest(x, y);
-    return;
+  if (drawMode === 'del') { delNearest(x,y); return; }
+  const c = px2chart(x,y);
+  if (!c.time && drawMode !== 'hline' && drawMode !== 'pen') return;
+  if (drawMode === 'pen') {
+    isPen = true; curDraw = { type:'pen', color:drawColor, pts:[c] }; return;
   }
-
-  const coords = toChartCoords(x, y);
-  if (coords.time == null || coords.price == null) return;
-
-  if (drawMode === 'hline') {
-    drawings.push({ type:'hline', color:drawColor, price:coords.price });
-    renderDrawings();
-    return;
-  }
-  if (drawMode === 'vline') {
-    drawings.push({ type:'vline', color:drawColor, time:coords.time });
-    renderDrawings();
-    return;
-  }
-  if (drawMode === 'rect') {
-    curDraw = { type:'rect', color:drawColor, p1:coords, p2:coords };
-    return;
-  }
-  // line, ray, fib: 2-click
-  if (drawStep === 0) {
-    curDraw  = { type:drawMode, color:drawColor, p1:coords, p2:coords };
-    drawStep = 1;
-  } else {
-    curDraw.p2 = coords;
-    drawings.push({ ...curDraw });
-    curDraw  = null;
-    drawStep = 0;
-    renderDrawings();
-  }
+  if (drawMode === 'hline') { drawings.push({type:'hline',color:drawColor,price:c.price}); renderDrawings(); return; }
+  if (drawMode === 'vline') { drawings.push({type:'vline',color:drawColor,time:c.time});   renderDrawings(); return; }
+  if (drawMode === 'rect')  { curDraw = {type:'rect',color:drawColor,p1:c,p2:c}; return; }
+  // 2-click tools
+  if (drawStep === 0) { curDraw = {type:drawMode,color:drawColor,p1:c,p2:c}; drawStep=1; }
+  else { curDraw.p2 = c; drawings.push({...curDraw}); curDraw=null; drawStep=0; renderDrawings(); }
 }
 
-function onPtrMove(x, y) {
+function onMove(x, y) {
   if (!curDraw) return;
-  const coords = toChartCoords(x, y);
-  if (coords.time != null && coords.price != null) {
-    curDraw.p2 = coords;
-  }
+  const c = px2chart(x,y);
+  if (drawMode === 'pen' && isPen) { curDraw.pts.push(c); }
+  else if (c.time != null && c.price != null) { curDraw.p2 = c; }
   renderDrawings();
 }
 
-function onPtrUp(x, y) {
-  if (!curDraw || curDraw.type !== 'rect') return;
-  const coords = toChartCoords(x, y);
-  if (coords.time != null && coords.price != null) curDraw.p2 = coords;
-  drawings.push({ ...curDraw });
-  curDraw  = null;
-  drawStep = 0;
-  renderDrawings();
+function onUp(x, y) {
+  if (!curDraw) return;
+  if (drawMode === 'pen') { if(isPen && curDraw.pts.length>1) drawings.push({...curDraw}); isPen=false; curDraw=null; renderDrawings(); return; }
+  if (drawMode === 'rect') { const c=px2chart(x,y); if(c.time)curDraw.p2=c; drawings.push({...curDraw}); curDraw=null; drawStep=0; renderDrawings(); }
 }
 
 function renderDrawings() {
-  if (!ctx) return;
-  const w = overlay.offsetWidth;
-  const h = overlay.offsetHeight;
-  ctx.clearRect(0, 0, w, h);
-
-  const all = curDraw ? [...drawings, curDraw] : drawings;
+  if (!ctx || !overlay) return;
+  const w=overlay.offsetWidth, h=overlay.offsetHeight;
+  ctx.clearRect(0,0,w,h);
   ctx.font = '11px Segoe UI';
-
-  all.forEach(d => drawShape(d, w, h));
+  const all = curDraw ? [...drawings,curDraw] : drawings;
+  all.forEach(d => drawShape(d,w,h));
 }
 
 function drawShape(d, w, h) {
-  ctx.strokeStyle = d.color;
-  ctx.fillStyle   = d.color;
-  ctx.lineWidth   = 1.5;
-  ctx.setLineDash([]);
+  ctx.strokeStyle = d.color; ctx.fillStyle = d.color;
+  ctx.lineWidth   = 1.5; ctx.setLineDash([]);
 
+  if (d.type === 'pen') {
+    if (!d.pts || d.pts.length < 2) return;
+    ctx.beginPath();
+    d.pts.forEach((pt,i) => {
+      if (!pt.time && pt.time !== 0) return;
+      const {x,y} = chart2px(pt.time, pt.price);
+      if (x==null||y==null) return;
+      i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    });
+    ctx.stroke(); return;
+  }
   if (d.type === 'hline') {
-    const { y } = toPx(null, d.price);
-    if (y == null) return;
-    ctx.beginPath();
-    ctx.moveTo(0, y); ctx.lineTo(w, y);
-    ctx.stroke();
-    ctx.fillText(d.price.toFixed(2), 4, y - 3);
+    const {y} = chart2px(null, d.price); if(y==null) return;
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke();
+    ctx.fillText(d.price.toFixed(2), 4, y-3); return;
   }
-  else if (d.type === 'vline') {
-    const { x } = toPxTime(d.time);
-    if (x == null) return;
-    ctx.beginPath();
-    ctx.moveTo(x, 0); ctx.lineTo(x, h);
-    ctx.stroke();
+  if (d.type === 'vline') {
+    const {x} = {x: mainChart?.timeScale().timeToCoordinate(d.time)}; if(x==null) return;
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); return;
   }
-  else if (d.type === 'line' || d.type === 'ray') {
-    const a = toPx(d.p1.time, d.p1.price);
-    const b = toPx(d.p2.time, d.p2.price);
-    if (a.x == null || a.y == null || b.x == null || b.y == null) return;
-
-    if (d.type === 'line') {
-      // extend both directions to canvas bounds
-      const pts = extendToBounds(a.x, a.y, b.x, b.y, w, h);
-      ctx.beginPath();
-      ctx.moveTo(pts[0], pts[1]); ctx.lineTo(pts[2], pts[3]);
-      ctx.stroke();
+  if (d.type === 'line' || d.type === 'ray') {
+    const a=chart2px(d.p1.time,d.p1.price), b=chart2px(d.p2.time,d.p2.price);
+    if(a.x==null||a.y==null||b.x==null||b.y==null) return;
+    ctx.beginPath();
+    if (d.type === 'ray') {
+      const dx=b.x-a.x, dy=b.y-a.y;
+      if(Math.abs(dx)<0.001){ctx.moveTo(a.x,0);ctx.lineTo(a.x,h);}
+      else { const t=(w-a.x)/dx; ctx.moveTo(a.x,a.y); ctx.lineTo(a.x+dx*t,a.y+dy*t); }
+      ctx.stroke(); ctx.beginPath(); ctx.arc(a.x,a.y,3,0,Math.PI*2); ctx.fill();
     } else {
-      // ray: from p1 extending through p2 to right edge
-      const dx = b.x - a.x, dy = b.y - a.y;
-      if (Math.abs(dx) < 0.001) {
-        ctx.beginPath(); ctx.moveTo(a.x, 0); ctx.lineTo(a.x, h); ctx.stroke();
-      } else {
-        const t = (w - a.x) / dx;
-        ctx.beginPath();
-        ctx.moveTo(a.x, a.y); ctx.lineTo(a.x + dx*t, a.y + dy*t);
-        ctx.stroke();
-        // dot at p1
-        ctx.beginPath(); ctx.arc(a.x, a.y, 3, 0, Math.PI*2); ctx.fill();
-      }
+      const dx=b.x-a.x, dy=b.y-a.y;
+      if(Math.abs(dx)<0.001){ctx.moveTo(a.x,0);ctx.lineTo(a.x,h);}
+      else { const s=dy/dx; ctx.moveTo(0,a.y-s*a.x); ctx.lineTo(w,a.y+s*(w-a.x)); }
+      ctx.stroke();
     }
+    return;
   }
-  else if (d.type === 'rect') {
-    const a = toPx(d.p1.time, d.p1.price);
-    const b = toPx(d.p2.time, d.p2.price);
-    if (a.x==null||a.y==null||b.x==null||b.y==null) return;
-    const rx = Math.min(a.x,b.x), ry = Math.min(a.y,b.y);
-    const rw = Math.abs(b.x-a.x), rh = Math.abs(b.y-a.y);
-    ctx.strokeRect(rx, ry, rw, rh);
-    ctx.globalAlpha = 0.06;
-    ctx.fillRect(rx, ry, rw, rh);
-    ctx.globalAlpha = 1;
+  if (d.type === 'rect') {
+    const a=chart2px(d.p1.time,d.p1.price), b=chart2px(d.p2.time,d.p2.price);
+    if(a.x==null||a.y==null||b.x==null||b.y==null) return;
+    const rx=Math.min(a.x,b.x), ry=Math.min(a.y,b.y), rw=Math.abs(b.x-a.x), rh=Math.abs(b.y-a.y);
+    ctx.strokeRect(rx,ry,rw,rh);
+    ctx.globalAlpha=.07; ctx.fillRect(rx,ry,rw,rh); ctx.globalAlpha=1; return;
   }
-  else if (d.type === 'fib') {
-    const p1Price = d.p1.price, p2Price = d.p2.price;
-    const ratios  = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1.0];
-    const range   = p2Price - p1Price;
-    ratios.forEach(r => {
-      const price = p1Price + range * r;
-      const { y }  = toPx(null, price);
-      if (y == null) return;
-      ctx.globalAlpha = r===0||r===1 ? 1 : 0.75;
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
-      ctx.globalAlpha = 1;
-      ctx.fillText(`${(r*100).toFixed(1)}%  ${price.toFixed(2)}`, 4, y - 3);
+  if (d.type === 'fib') {
+    const range = d.p2.price - d.p1.price;
+    [0,0.236,0.382,0.5,0.618,0.786,1].forEach(r => {
+      const price = d.p1.price + range*r;
+      const {y}   = chart2px(null, price); if(y==null) return;
+      ctx.globalAlpha = (r===0||r===1) ? 1 : .7;
+      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); ctx.globalAlpha=1;
+      ctx.fillText(`${(r*100).toFixed(1)}%  ${price.toFixed(2)}`, 4, y-3);
     });
   }
 }
 
-// toPx but only time coord (for vline)
-function toPxTime(time) {
-  return { x: mainChart.timeScale().timeToCoordinate(time) };
+function seg2ptDist(px,py,x1,y1,x2,y2) {
+  const dx=x2-x1,dy=y2-y1, l2=dx*dx+dy*dy;
+  if(!l2) return Math.hypot(px-x1,py-y1);
+  const t=Math.max(0,Math.min(1,((px-x1)*dx+(py-y1)*dy)/l2));
+  return Math.hypot(px-(x1+t*dx),py-(y1+t*dy));
 }
 
-// toPx but only price coord (for hline, fib)
-function toPx(time, price) {
-  return {
-    x: time  != null ? mainChart.timeScale().timeToCoordinate(time) : null,
-    y: price != null ? candleSeries.priceToCoordinate(price)        : null,
-  };
-}
-
-function extendToBounds(x1, y1, x2, y2, w, h) {
-  const dx = x2 - x1, dy = y2 - y1;
-  if (Math.abs(dx) < 0.001) return [x1, 0, x1, h];
-  const slope = dy / dx;
-  // at x=0: y = y1 - slope*x1; at x=w: y = y1 + slope*(w-x1)
-  return [0, y1 - slope*x1, w, y1 + slope*(w-x1)];
-}
-
-function ptToSegDist(px, py, x1, y1, x2, y2) {
-  const dx=x2-x1, dy=y2-y1;
-  const len2 = dx*dx + dy*dy;
-  if (len2 === 0) return Math.hypot(px-x1, py-y1);
-  const t = Math.max(0, Math.min(1, ((px-x1)*dx+(py-y1)*dy)/len2));
-  return Math.hypot(px - (x1+t*dx), py - (y1+t*dy));
-}
-
-function deleteNearest(mx, my) {
-  let minDist = 12, minIdx = -1;
-  drawings.forEach((d, i) => {
-    let dist = Infinity;
-    if (d.type === 'hline') {
-      const { y } = toPx(null, d.price);
-      if (y != null) dist = Math.abs(my - y);
-    } else if (d.type === 'vline') {
-      const { x } = toPxTime(d.time);
-      if (x != null) dist = Math.abs(mx - x);
-    } else if (d.type === 'line' || d.type === 'ray') {
-      const a = toPx(d.p1.time, d.p1.price);
-      const b = toPx(d.p2.time, d.p2.price);
-      if (a.x!=null && b.x!=null) dist = ptToSegDist(mx, my, a.x, a.y, b.x, b.y);
-    } else if (d.type === 'rect') {
-      const a = toPx(d.p1.time, d.p1.price);
-      const b = toPx(d.p2.time, d.p2.price);
-      if (a.x!=null && b.x!=null) {
-        const rx=Math.min(a.x,b.x), ry=Math.min(a.y,b.y);
-        const rw=Math.abs(b.x-a.x), rh=Math.abs(b.y-a.y);
-        const cx = Math.max(rx, Math.min(rx+rw, mx));
-        const cy = Math.max(ry, Math.min(ry+rh, my));
-        dist = Math.hypot(mx-cx, my-cy);
-      }
-    } else if (d.type === 'fib') {
-      [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1.0].forEach(r => {
-        const price = d.p1.price + (d.p2.price - d.p1.price) * r;
-        const { y } = toPx(null, price);
-        if (y != null) dist = Math.min(dist, Math.abs(my - y));
+function delNearest(mx,my) {
+  let minD=12, minI=-1;
+  drawings.forEach((d,i) => {
+    let dist=Infinity;
+    if(d.type==='hline'){const{y}=chart2px(null,d.price);if(y!=null)dist=Math.abs(my-y);}
+    else if(d.type==='vline'){const x=mainChart?.timeScale().timeToCoordinate(d.time);if(x!=null)dist=Math.abs(mx-x);}
+    else if(d.type==='line'||d.type==='ray'){
+      const a=chart2px(d.p1.time,d.p1.price),b=chart2px(d.p2.time,d.p2.price);
+      if(a.x!=null&&b.x!=null)dist=seg2ptDist(mx,my,a.x,a.y,b.x,b.y);
+    }
+    else if(d.type==='rect'){
+      const a=chart2px(d.p1.time,d.p1.price),b=chart2px(d.p2.time,d.p2.price);
+      if(a.x!=null){const cx=Math.max(Math.min(a.x,b.x),Math.min(Math.max(a.x,b.x),mx));
+        const cy=Math.max(Math.min(a.y,b.y),Math.min(Math.max(a.y,b.y),my));dist=Math.hypot(mx-cx,my-cy);}
+    }
+    else if(d.type==='fib'){
+      [0,0.236,0.382,0.5,0.618,0.786,1].forEach(r=>{
+        const p=d.p1.price+(d.p2.price-d.p1.price)*r;
+        const{y}=chart2px(null,p);if(y!=null)dist=Math.min(dist,Math.abs(my-y));
       });
     }
-    if (dist < minDist) { minDist = dist; minIdx = i; }
+    if(dist<minD){minD=dist;minI=i;}
   });
-  if (minIdx >= 0) {
-    drawings.splice(minIdx, 1);
-    renderDrawings();
-  }
+  if(minI>=0){drawings.splice(minI,1);renderDrawings();}
 }
 
-// ═══════════════════════════════════════════════
-// PRACTICE MODE
-// ═══════════════════════════════════════════════
-function startPractice() {
-  if (!allData) { setStatus('먼저 데이터를 불러오세요.'); return; }
-  const pct = parseInt(document.getElementById('hide-pct').value) || 80;
-  hideCutIdx   = Math.floor(allData.candles.length * pct / 100);
-  revealedIdx  = hideCutIdx;
-  practiceMode = true;
-  renderAll(revealedIdx);
-  mainChart.timeScale().fitContent();
-  setStatus(`연습 모드 — ${revealedIdx} / ${allData.candles.length}봉 표시`);
-  document.getElementById('btn-reveal').disabled     = false;
-  document.getElementById('btn-reveal-all').disabled = false;
-}
-
-function revealNext() {
-  if (!practiceMode || !allData) return;
-  const n    = parseInt(document.getElementById('reveal-n').value) || 5;
-  revealedIdx = Math.min(revealedIdx + n, allData.candles.length);
-  renderAll(revealedIdx);
-  mainChart.timeScale().scrollToRealTime();
-  setStatus(`${revealedIdx} / ${allData.candles.length}봉 공개`);
-  if (revealedIdx >= allData.candles.length) {
-    setStatus('전체 공개 완료');
-    document.getElementById('btn-reveal').disabled = true;
-  }
-}
-
-function revealAll() {
-  if (!allData) return;
-  revealedIdx = allData.candles.length;
-  renderAll(revealedIdx);
-  mainChart.timeScale().fitContent();
-  setStatus('전체 공개 완료');
-  document.getElementById('btn-reveal').disabled     = true;
-  document.getElementById('btn-reveal-all').disabled = true;
-}
-
-function resetPractice() {
-  if (!allData) return;
-  practiceMode = false;
-  revealedIdx  = allData.candles.length;
-  renderAll(revealedIdx);
-  mainChart.timeScale().fitContent();
-  setStatus(`${allData.name} · ${allData.candles.length}봉`);
-  document.getElementById('btn-reveal').disabled     = true;
-  document.getElementById('btn-reveal-all').disabled = true;
-}
+function undoDraw() { if(drawings.length){drawings.pop();renderDrawings();} }
+function clearDrawings() { drawings=[];curDraw=null;drawStep=0;renderDrawings(); }
 
 // ═══════════════════════════════════════════════
 // EVENT BINDINGS
 // ═══════════════════════════════════════════════
-function setStatus(msg) { document.getElementById('status-msg').textContent = msg; }
 
-// 지표 토글
+// indicator toggles
 document.querySelectorAll('.tog').forEach(btn => {
   btn.addEventListener('click', () => {
     const k = btn.dataset.ind;
     active[k] = !active[k];
     btn.classList.toggle('on', active[k]);
-    if (allData) renderAll(revealedIdx);
+    if (curSession) renderAll(revealedIdx);
   });
 });
 
-// 그리기 툴
+// drawing tools
 document.querySelectorAll('.dtool').forEach(btn => {
   btn.addEventListener('click', () => {
-    drawMode = btn.dataset.tool;
-    drawStep = 0;
-    curDraw  = null;
+    drawMode = btn.dataset.tool; drawStep=0; curDraw=null; isPen=false;
     document.querySelectorAll('.dtool').forEach(b => b.classList.remove('on'));
     btn.classList.add('on');
-    // overlay captures events only when a drawing tool is active
-    overlay.style.pointerEvents = drawMode === 'pointer' ? 'none' : 'auto';
+    if (overlay) overlay.style.pointerEvents = drawMode==='pointer' ? 'none' : 'auto';
     renderDrawings();
   });
 });
 
-document.getElementById('draw-color').addEventListener('input', e => {
-  drawColor = e.target.value;
+document.getElementById('draw-color').addEventListener('input', e => { drawColor = e.target.value; });
+
+// eval buttons
+document.querySelectorAll('[data-trend]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-trend]').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+  });
+});
+document.querySelectorAll('[data-conf]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-conf]').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+  });
 });
 
-document.getElementById('btn-undo').addEventListener('click', () => {
-  if (drawings.length) { drawings.pop(); renderDrawings(); }
-});
-document.getElementById('btn-clear-draw').addEventListener('click', () => {
-  drawings = []; curDraw = null; drawStep = 0; renderDrawings();
-});
-
-// 날짜↔기간 연동
-document.getElementById('period').addEventListener('change', e => {
-  if (e.target.value) {
-    document.getElementById('date-start').value = '';
-    document.getElementById('date-end').value   = '';
-  }
-});
-document.getElementById('date-start').addEventListener('change', () => {
-  document.getElementById('period').value = '';
-});
-document.getElementById('date-end').addEventListener('change', () => {
-  document.getElementById('period').value = '';
+// enter key for auth
+['login-user','login-pw','reg-user','reg-pw'].forEach(id => {
+  document.getElementById(id)?.addEventListener('keydown', e => {
+    if(e.key==='Enter') { id.startsWith('login') ? doLogin() : doRegister(); }
+  });
 });
 
-// 불러오기
-document.getElementById('btn-load').addEventListener('click', loadData);
-document.getElementById('ticker').addEventListener('keydown', e => { if (e.key === 'Enter') loadData(); });
-
-// 연습
-document.getElementById('btn-practice').addEventListener('click', startPractice);
-document.getElementById('btn-reveal').addEventListener('click', revealNext);
-document.getElementById('btn-reveal-all').addEventListener('click', revealAll);
-document.getElementById('btn-reset').addEventListener('click', resetPractice);
-
-// ESC: 그리기 취소
+// keyboard shortcuts
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    curDraw = null; drawStep = 0; renderDrawings();
-  }
-  if (e.key === 'Delete' || e.key === 'Backspace') {
-    if (drawings.length) { drawings.pop(); renderDrawings(); }
-  }
+  if(document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='TEXTAREA') return;
+  if(e.key==='Escape')  { curDraw=null;drawStep=0;isPen=false;renderDrawings(); }
+  if(e.key==='Delete'||e.key==='Backspace') undoDraw();
+});
+
+// setup: period↔date sync
+document.getElementById('s-period')?.addEventListener('change', e => {
+  if(e.target.value){ document.getElementById('s-start').value=''; document.getElementById('s-end').value=''; }
+});
+['s-start','s-end'].forEach(id => {
+  document.getElementById(id)?.addEventListener('change', () => { document.getElementById('s-period').value=''; });
 });
 
 // ═══════════════════════════════════════════════
-// START
+// UTILITY
 // ═══════════════════════════════════════════════
-initCharts();
-loadData();
+function fmt(d) { return d.toISOString().slice(0,7); }
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+route();
 </script>
 </body>
 </html>

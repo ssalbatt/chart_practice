@@ -274,6 +274,7 @@ input[type=color]{width:26px;height:26px;padding:1px;border-radius:3px;border:1p
   <!-- 지표 바 -->
   <div class="bar" id="indicator-bar">
     <span style="color:#787b86;font-size:11px">지표:</span>
+    <button id="ma-type-btn" class="tog" style="color:#d1d4dc;font-size:10px;padding:3px 7px" onclick="toggleMaType()">SMA</button>
     <button class="tog ma5"   data-ind="ma5">MA5</button>
     <button class="tog ma20 on" data-ind="ma20">MA20</button>
     <button class="tog ma60 on" data-ind="ma60">MA60</button>
@@ -465,6 +466,23 @@ let candleSeries, volSeries;
 let maSeries = {}, bbSeries = {}, ichiSeries = {};
 let rsiLine, rsiOb, rsiOs, macdLine, macdSig, macdHist;
 let stochK, stochD, stochOb, stochOs, obvLine;
+
+// MA type: 'sma' | 'ema'
+let maType = 'sma';
+
+function toggleMaType() {
+  maType = maType === 'sma' ? 'ema' : 'sma';
+  const btn = document.getElementById('ma-type-btn');
+  btn.textContent = maType.toUpperCase();
+  btn.classList.toggle('on', maType === 'ema');
+  if (curSession) {
+    const range = mainChart?.timeScale().getVisibleLogicalRange();
+    _syncPaused = true;
+    renderAll(revealedIdx);
+    _syncPaused = false;
+    if (range) mainChart?.timeScale().setVisibleLogicalRange(range);
+  }
+}
 
 // sync pause flag — suppresses timescale sync during renderAll
 let _syncPaused = false;
@@ -1189,9 +1207,11 @@ function renderAll(upTo) {
     // check if this period is one of the active ones
     const activeKey = Object.keys(active).find(k => k==='ma'+p && active[k]);
     if (!activeKey) return;
+    const label = (maType === 'ema' ? 'EMA' : 'MA') + p;
     const s = mainChart.addLineSeries({ color:maColors[String(p)]||'#aaa', lineWidth:1,
-      title:'MA'+p, lastValueVisible:true, priceLineVisible:false });
-    s.setData(clip(computeMA(d.candles, p), maxTime));
+      title:label, lastValueVisible:true, priceLineVisible:false });
+    const maData = maType === 'ema' ? computeEMA(d.candles, p) : computeMA(d.candles, p);
+    s.setData(clip(maData, maxTime));
     maSeries[p] = s;
   });
 
@@ -1295,6 +1315,18 @@ function computeMA(candles, period) {
     let sum = 0;
     for (let j = i-period+1; j <= i; j++) sum += candles[j].close;
     result.push({ time: candles[i].time, value: +(sum/period).toFixed(4) });
+  }
+  return result;
+}
+
+function computeEMA(candles, period) {
+  const k = 2 / (period + 1);
+  const result = [];
+  let ema = candles.slice(0, period).reduce((a, c) => a + c.close, 0) / period;
+  result.push({ time: candles[period-1].time, value: +ema.toFixed(4) });
+  for (let i = period; i < candles.length; i++) {
+    ema = candles[i].close * k + ema * (1 - k);
+    result.push({ time: candles[i].time, value: +ema.toFixed(4) });
   }
   return result;
 }

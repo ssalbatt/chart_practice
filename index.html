@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no">
 <title>차트 연습</title>
 <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 <style>
@@ -564,7 +564,7 @@ function doLogout() {
 // ═══════════════════════════════════════════════
 async function loadHome() {
   document.getElementById('home-username').textContent = username + '님';
-  const sessions = await api.get('/api/sessions');
+  const sessions = (await api.get('/api/sessions')).filter(s => s.status !== 'deleted');
   if (!Array.isArray(sessions)) { doLogout(); return; }
   const el = document.getElementById('home-sessions');
   const recent = sessions.slice(0, 5);
@@ -587,6 +587,7 @@ function sessionCard(s) {
       <span class="card-ticker">${s.ticker}</span>
       <span class="card-meta">${s.interval} · ${s.total}봉</span>
       ${badge}
+      <button onclick="event.stopPropagation();deleteSession(${s.id})" style="margin-left:auto;background:none;border:none;color:#787b86;font-size:13px;cursor:pointer;padding:0 2px" title="삭제">✕</button>
     </div>
     <div class="card-stats">
       <span class="stat-correct">✓ ${s.correct}</span>
@@ -597,6 +598,14 @@ function sessionCard(s) {
       <span style="color:#787b86;margin-left:auto">${date}</span>
     </div>
   </div>`;
+}
+
+async function deleteSession(id) {
+  if (!confirm('이 세션을 삭제하시겠어요?')) return;
+  await api.patch(`/api/sessions/${id}`, { status: 'deleted' });
+  const hash = window.location.hash;
+  if (hash === '#home') loadHome();
+  else loadHistory();
 }
 
 // ═══════════════════════════════════════════════
@@ -745,6 +754,11 @@ function updatePracticeStatus() {
 
 function handleReveal() {
   if (!curSession || evalPhase) return;
+  if (revealTimes.length >= 10) {
+    alert('최대 10번 공개했습니다. 세션을 종료해 주세요.');
+    document.getElementById('btn-reveal').disabled = true;
+    return;
+  }
   // show pre-eval drawer
   evalState = {};
   evalPhase = 'pre';
@@ -784,7 +798,7 @@ function submitPreEval() {
   document.getElementById('eval-post-summary').textContent =
     `예측: ${tMap[evalState.trend]} / ${cMap[evalState.conf]}`;
   document.querySelectorAll('[data-post]').forEach(b => b.classList.remove('on','on-ok','on-bad'));
-  if (revealedIdx >= curSession.total) {
+  if (revealedIdx >= curSession.total || revealTimes.length >= 10) {
     document.getElementById('btn-reveal').disabled = true;
   }
 }
@@ -855,7 +869,7 @@ function confirmLeave() {
 // HISTORY
 // ═══════════════════════════════════════════════
 async function loadHistory() {
-  const sessions = await api.get('/api/sessions');
+  const sessions = (await api.get('/api/sessions')).filter(s => s.status !== 'deleted');
   const el = document.getElementById('history-list');
   if (!Array.isArray(sessions) || !sessions.length) {
     el.innerHTML = '<div style="color:#787b86;padding:20px">세션 기록이 없습니다.</div>';
@@ -1022,10 +1036,18 @@ function initCharts() {
 }
 
 function syncTime(charts) {
+  let _syncing = false;
   charts.forEach(src => {
-    src.timeScale().subscribeVisibleLogicalRangeChange(range => {
-      if (!range) return;
-      charts.forEach(tgt => { if (tgt !== src) try{ tgt.timeScale().setVisibleLogicalRange(range); }catch(e){} });
+    src.timeScale().subscribeVisibleLogicalRangeChange(() => {
+      if (_syncing) return;
+      _syncing = true;
+      const range = src.timeScale().getVisibleRange();
+      if (range) {
+        charts.forEach(tgt => {
+          if (tgt !== src) try { tgt.timeScale().setVisibleRange(range); } catch(e) {}
+        });
+      }
+      _syncing = false;
     });
   });
 }
@@ -1621,6 +1643,16 @@ document.getElementById('s-period')?.addEventListener('change', e => {
 // UTILITY
 // ═══════════════════════════════════════════════
 function fmt(d) { return d.toISOString().slice(0,7); }
+
+// ═══════════════════════════════════════════════
+// ZOOM PREVENTION
+// ═══════════════════════════════════════════════
+document.addEventListener('wheel', e => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+document.addEventListener('gesturestart', e => e.preventDefault());
+document.addEventListener('gesturechange', e => e.preventDefault());
+document.addEventListener('touchmove', e => {
+  if (e.touches.length > 1) e.preventDefault();
+}, { passive: false });
 
 // ═══════════════════════════════════════════════
 // INIT

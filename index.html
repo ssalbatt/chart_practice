@@ -1596,7 +1596,11 @@ document.querySelectorAll('.tog').forEach(btn => {
     const k = btn.dataset.ind;
     active[k] = !active[k];
     btn.classList.toggle('on', active[k]);
-    if (curSession) renderAll(revealedIdx);
+    if (curSession) {
+      const range = mainChart?.timeScale().getVisibleLogicalRange();
+      renderAll(revealedIdx);
+      if (range) requestAnimationFrame(() => mainChart?.timeScale().setVisibleLogicalRange(range));
+    }
   });
 });
 

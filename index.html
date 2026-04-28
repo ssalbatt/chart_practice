@@ -670,8 +670,9 @@ async function previewData() {
     setupData = data;
     const first = new Date(data.candles[0].time * 1000);
     const last  = new Date(data.candles[data.candles.length-1].time * 1000);
+    const warn = data.candles.length < 200 ? '  ⚠ 200봉 미만' : '';
     document.getElementById('preview-info').textContent =
-      `${data.name} · ${data.candles.length}봉 · ${fmt(first)} ~ ${fmt(last)}`;
+      `${data.name} · ${data.candles.length}봉 · ${fmt(first)} ~ ${fmt(last)}${warn}`;
     // set blind year/month to middle of data range
     const mid = new Date((data.candles[0].time + data.candles[data.candles.length-1].time) / 2 * 1000);
     document.getElementById('s-blind-year').value  = String(mid.getFullYear());
@@ -735,7 +736,7 @@ async function setRandomBlind() {
       document.getElementById('s-end').value   = '';
     } else {
       const endTs   = minEnd + Math.random() * (maxEnd - minEnd);
-      const startTs = endTs - twoYears;
+      const startTs = endTs - twoYears * 1.5;  // 3년치로 200봉 확보
       document.getElementById('s-start').value  = toStr(startTs);
       document.getElementById('s-end').value    = toStr(endTs);
       document.getElementById('s-period').value = '';
@@ -750,9 +751,11 @@ async function setRandomBlind() {
   await previewData();
   if (!setupData) return;
 
-  // 3) 로드된 데이터의 60~90% 지점에 블라인드
+  // 3) 로드된 데이터의 60~90% 지점에 블라인드 (최소 200봉 이후)
   const n   = setupData.candles.length;
-  const idx = Math.floor(n * (0.60 + Math.random() * 0.30));
+  const minIdx = Math.max(200, Math.floor(n * 0.60));
+  const maxIdx = Math.floor(n * 0.90);
+  const idx = minIdx + Math.floor(Math.random() * Math.max(1, maxIdx - minIdx));
   const dt  = new Date(setupData.candles[idx].time * 1000);
   document.getElementById('s-blind-year').value  = String(dt.getFullYear());
   document.getElementById('s-blind-month').value = String(dt.getMonth() + 1).padStart(2, '0');
@@ -760,12 +763,16 @@ async function setRandomBlind() {
 
 async function startSession() {
   if (!setupData) { await previewData(); if (!setupData) return; }
+  if (setupData.candles.length < 200) {
+    document.getElementById('setup-err').textContent = '최소 200봉 필요합니다. 기간을 늘려주세요.';
+    return;
+  }
   const blindY = document.getElementById('s-blind-year').value;
   const blindM = document.getElementById('s-blind-month').value;
   const blindTs = new Date(`${blindY}-${blindM}-01`).getTime() / 1000;
   let hide_idx = setupData.candles.findIndex(c => c.time >= blindTs);
   if (hide_idx < 0) hide_idx = Math.floor(setupData.candles.length * 0.8);
-  if (hide_idx < 5) hide_idx = 5;
+  if (hide_idx < 200) hide_idx = 200;
 
   const res = await api.post('/api/sessions', {
     ticker:   setupData.ticker,

@@ -137,6 +137,22 @@ input[type=color]{width:26px;height:26px;padding:1px;border-radius:3px;border:1p
 .settings-section h3{font-size:12px;color:#787b86;text-transform:uppercase;letter-spacing:.5px}
 .ma-inputs{display:flex;gap:6px;flex-wrap:wrap}
 .ma-inputs input{width:56px}
+
+/* ── Pipeline ── */
+.pl-tab{font-size:11px;padding:4px 10px}
+.pl-card{background:#1e222d;border:1px solid #2a2e39;border-radius:8px;padding:14px;cursor:pointer;transition:border-color .15s;width:100%;max-width:220px}
+.pl-card:hover{border-color:#2962ff}
+.pl-stage-label{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#787b86;margin-bottom:10px}
+.pl-card-grid{display:flex;flex-wrap:wrap;gap:10px}
+.pl-stg-badge{font-size:9px;padding:2px 6px;border-radius:4px;font-weight:700}
+.pl-stg-scanning{background:#1e3a5f;color:#4fa3e0}
+.pl-stg-watchlist{background:#1a3a28;color:#4fc07a}
+.pl-stg-position{background:#3a1a1a;color:#e04f4f}
+.pl-k-card{background:#1e222d;border:1px solid #2a2e39;border-radius:6px;padding:12px;cursor:pointer;transition:box-shadow .15s}
+.pl-k-card:hover{box-shadow:0 0 0 1px #2962ff}
+.pl-tbl tbody tr:hover td{background:#1e222d}
+.pl-tbl td{padding:10px 10px;font-size:12px;border-bottom:1px solid #1a1d24}
+.pl-filter{font-size:11px;padding:4px 10px}
 </style>
 </head>
 <body>
@@ -169,6 +185,7 @@ input[type=color]{width:26px;height:26px;padding:1px;border-radius:3px;border:1p
     <span class="topnav-title">📈 차트 연습</span>
     <span class="spacer"></span>
     <span id="home-username" style="color:#787b86;font-size:12px"></span>
+    <button class="btn-ghost" style="font-size:12px;padding:4px 10px" onclick="navigate('#pipeline')">파이프라인</button>
     <button class="btn-ghost" style="font-size:12px;padding:4px 10px" onclick="navigate('#history')">기록</button>
     <button class="btn-ghost" style="font-size:12px;padding:4px 10px" onclick="navigate('#settings')">설정</button>
     <button class="btn-ghost" style="font-size:12px;padding:4px 10px" onclick="doLogout()">로그아웃</button>
@@ -439,6 +456,80 @@ input[type=color]{width:26px;height:26px;padding:1px;border-radius:3px;border:1p
   </div>
 </div>
 
+<!-- ══════════ PIPELINE ══════════ -->
+<div id="page-pipeline" class="page">
+  <div class="topnav">
+    <button class="btn-ghost" style="padding:4px 10px;font-size:12px" onclick="navigate('#home')">← 홈</button>
+    <span class="topnav-title">📊 파이프라인</span>
+    <span class="spacer"></span>
+    <div style="display:flex;gap:4px">
+      <button id="pl-tab-card"   class="pl-tab btn-primary" onclick="plSwitchView('card')">카드</button>
+      <button id="pl-tab-table"  class="pl-tab btn-ghost"   onclick="plSwitchView('table')">테이블</button>
+      <button id="pl-tab-kanban" class="pl-tab btn-ghost"   onclick="plSwitchView('kanban')">칸반</button>
+    </div>
+  </div>
+
+  <!-- CARD VIEW -->
+  <div id="pl-view-card" class="scroll-y pl-view" style="padding:16px;display:flex;flex-direction:column;gap:20px">
+    <div id="pl-card-scanning"></div>
+    <div id="pl-card-watchlist"></div>
+    <div id="pl-card-position"></div>
+  </div>
+
+  <!-- TABLE VIEW -->
+  <div id="pl-view-table" class="scroll-y pl-view" style="padding:16px;display:none">
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <input id="pl-search" placeholder="티커/종목명 검색" style="width:180px" oninput="plRenderTable()">
+      <button class="pl-filter btn-primary" data-stage="" onclick="plSetFilter(this)">전체</button>
+      <button class="pl-filter btn-ghost" data-stage="scanning" onclick="plSetFilter(this)">스캐닝</button>
+      <button class="pl-filter btn-ghost" data-stage="watchlist" onclick="plSetFilter(this)">관심</button>
+      <button class="pl-filter btn-ghost" data-stage="position" onclick="plSetFilter(this)">보유</button>
+    </div>
+    <table class="pl-tbl" style="width:100%;border-collapse:collapse">
+      <thead>
+        <tr style="border-bottom:1px solid #2a2e39;font-size:11px;color:#787b86;text-align:left">
+          <th style="padding:8px 10px">티커</th>
+          <th style="padding:8px 10px">종목명</th>
+          <th style="padding:8px 10px">Stage</th>
+          <th style="padding:8px 10px">현재가</th>
+          <th style="padding:8px 10px">등락</th>
+          <th style="padding:8px 10px">RSI</th>
+          <th style="padding:8px 10px">MA</th>
+          <th style="padding:8px 10px">목표가</th>
+          <th style="padding:8px 10px">손절가</th>
+          <th style="padding:8px 10px">손익비</th>
+          <th style="padding:8px 10px"></th>
+        </tr>
+      </thead>
+      <tbody id="pl-table-body"></tbody>
+    </table>
+  </div>
+
+  <!-- KANBAN VIEW -->
+  <div id="pl-view-kanban" class="scroll-y pl-view" style="padding:16px;display:none">
+    <div style="display:flex;gap:12px;min-width:max-content">
+      <div style="width:240px;flex-shrink:0">
+        <div style="background:#1e3a5f;color:#4fa3e0;padding:10px 14px;border-radius:6px 6px 0 0;font-size:11px;font-weight:700;letter-spacing:1px;display:flex;justify-content:space-between">
+          SCANNING <span id="pl-k-cnt-scanning" style="background:rgba(255,255,255,.15);padding:1px 7px;border-radius:10px">0</span>
+        </div>
+        <div id="pl-k-col-scanning" style="background:#13151f;border:1px solid #2a2e39;border-top:none;border-radius:0 0 6px 6px;padding:8px;display:flex;flex-direction:column;gap:8px;min-height:300px"></div>
+      </div>
+      <div style="width:240px;flex-shrink:0">
+        <div style="background:#1a3a28;color:#4fc07a;padding:10px 14px;border-radius:6px 6px 0 0;font-size:11px;font-weight:700;letter-spacing:1px;display:flex;justify-content:space-between">
+          WATCHLIST <span id="pl-k-cnt-watchlist" style="background:rgba(255,255,255,.15);padding:1px 7px;border-radius:10px">0</span>
+        </div>
+        <div id="pl-k-col-watchlist" style="background:#13151f;border:1px solid #2a2e39;border-top:none;border-radius:0 0 6px 6px;padding:8px;display:flex;flex-direction:column;gap:8px;min-height:300px"></div>
+      </div>
+      <div style="width:240px;flex-shrink:0">
+        <div style="background:#3a1a1a;color:#e04f4f;padding:10px 14px;border-radius:6px 6px 0 0;font-size:11px;font-weight:700;letter-spacing:1px;display:flex;justify-content:space-between">
+          POSITION <span id="pl-k-cnt-position" style="background:rgba(255,255,255,.15);padding:1px 7px;border-radius:10px">0</span>
+        </div>
+        <div id="pl-k-col-position" style="background:#13151f;border:1px solid #2a2e39;border-top:none;border-radius:0 0 6px 6px;padding:8px;display:flex;flex-direction:column;gap:8px;min-height:300px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 'use strict';
 
@@ -515,7 +606,7 @@ const api = {
 // ═══════════════════════════════════════════════
 // ROUTER
 // ═══════════════════════════════════════════════
-const PAGES = ['auth','home','setup','practice','history','detail','settings'];
+const PAGES = ['auth','home','setup','practice','history','detail','settings','pipeline'];
 
 function showPage(name) {
   PAGES.forEach(p => document.getElementById('page-'+p).classList.remove('active'));
@@ -535,6 +626,7 @@ async function route() {
   else if (hash === '#history')  { showPage('history'); loadHistory(); }
   else if (hash.startsWith('#detail')) { showPage('detail'); loadDetail(hash); }
   else if (hash === '#settings') { showPage('settings'); loadSettings(); }
+  else if (hash === '#pipeline') { showPage('pipeline'); initPipeline(); }
   else navigate('#home');
 }
 
@@ -1060,6 +1152,156 @@ async function changePw() {
   if (pw.length < 4) { document.getElementById('pw-err').textContent = '4자 이상 입력'; return; }
   // TODO: implement change password endpoint
   document.getElementById('pw-err').textContent = '(기능 준비 중)';
+}
+
+// ═══════════════════════════════════════════════
+// PIPELINE
+// ═══════════════════════════════════════════════
+let plView = 'card';
+let plFilter = '';
+let plData = [];
+
+// Mock data - 나중에 API로 대체
+const PL_MOCK = [
+  { ticker:'ANET',   name:'아리스타네트웍스', exch:'NYSE',   stage:'scanning',  price:'$165.73', change:'+1.24', rsi:68.4, ma:'정배열', target:'$192',    stop:'$152',    rr:'1.9:1', entry:null },
+  { ticker:'278470', name:'에이피알',         exch:'KRX',    stage:'scanning',  price:'451,000', change:'-0.44', rsi:70.1, ma:'정배열', target:'541,200', stop:'390,000', rr:'2.5:1', entry:null },
+  { ticker:'NVDA',   name:'엔비디아',         exch:'NASDAQ', stage:'scanning',  price:'$875.40', change:'+2.10', rsi:63.2, ma:'정배열', target:'$1,020',  stop:'$800',    rr:'1.9:1', entry:null },
+  { ticker:'AAPL',   name:'애플',             exch:'NASDAQ', stage:'watchlist', price:'$186.72', change:'+0.83', rsi:58.4, ma:'정배열', target:'$220',    stop:'$170',    rr:'2.1:1', entry:null },
+  { ticker:'005930', name:'삼성전자',         exch:'KRX',    stage:'watchlist', price:'73,400',  change:'+1.24', rsi:52.1, ma:'역배열', target:'88,000',  stop:'67,000',  rr:'2.3:1', entry:null },
+  { ticker:'MSFT',   name:'마이크로소프트',   exch:'NASDAQ', stage:'position',  price:'$420.50', change:'+0.61', rsi:61.3, ma:'정배열', target:'$470',    stop:'$370',    rr:'+6.5% 수익중', entry:'$395.00' },
+];
+
+function plStageLabel(s) {
+  return s === 'scanning' ? '스캐닝' : s === 'watchlist' ? '관심' : '보유';
+}
+
+function plSwitchView(v) {
+  plView = v;
+  ['card','table','kanban'].forEach(t => {
+    document.getElementById('pl-view-'+t).style.display = t === v ? (t==='card'?'flex':'block') : 'none';
+    const btn = document.getElementById('pl-tab-'+t);
+    btn.className = 'pl-tab ' + (t === v ? 'btn-primary' : 'btn-ghost');
+  });
+  if (v === 'card')   plRenderCard();
+  if (v === 'table')  plRenderTable();
+  if (v === 'kanban') plRenderKanban();
+}
+
+function plSetFilter(el) {
+  document.querySelectorAll('.pl-filter').forEach(b => b.className = 'pl-filter btn-ghost');
+  el.className = 'pl-filter btn-primary';
+  plFilter = el.dataset.stage;
+  plRenderTable();
+}
+
+function plFilteredData() {
+  const q = (document.getElementById('pl-search')?.value || '').toLowerCase();
+  return plData.filter(d =>
+    (!plFilter || d.stage === plFilter) &&
+    (!q || d.ticker.toLowerCase().includes(q) || d.name.toLowerCase().includes(q))
+  );
+}
+
+function plRsiBar(rsi) {
+  const hot = rsi >= 70 ? '#f23645' : rsi >= 60 ? '#ffd54f' : '#2962ff';
+  return `<span style="display:inline-block;width:40px;height:3px;background:#2a2e39;border-radius:2px;vertical-align:middle;margin-left:4px">
+    <span style="display:block;width:${Math.min(rsi,100)}%;height:100%;background:${hot};border-radius:2px"></span></span>`;
+}
+
+function plRenderCard() {
+  const byStage = { scanning:[], watchlist:[], position:[] };
+  plData.forEach(d => (byStage[d.stage]||[]).push(d));
+  const stageNames = { scanning:'스캐닝', watchlist:'관심', position:'보유' };
+  const stageColors = { scanning:'#4fa3e0', watchlist:'#4fc07a', position:'#e04f4f' };
+
+  ['scanning','watchlist','position'].forEach(stage => {
+    const el = document.getElementById('pl-card-' + stage);
+    const items = byStage[stage];
+    if (!items.length) { el.style.display='none'; return; }
+    el.style.display = 'block';
+    const up = items[0] && parseFloat(items[0].change) >= 0;
+    el.innerHTML = `<div class="pl-stage-label" style="color:${stageColors[stage]}">${stageNames[stage]} - ${items.length}</div>
+      <div class="pl-card-grid">${items.map(d => {
+        const changePos = parseFloat(d.change) >= 0;
+        return `<div class="pl-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+            <span style="font-size:14px;font-weight:700;color:#fff">${d.ticker}</span>
+            <span class="pl-stg-badge pl-stg-${d.stage}">${plStageLabel(d.stage)}</span>
+          </div>
+          <div style="font-size:18px;font-weight:700;color:#fff">${d.price}</div>
+          <div style="font-size:11px;color:${changePos?'#f23645':'#2962ff'};margin-top:2px">${changePos?'▲':'▼'} ${d.change}%</div>
+          <div style="margin-top:10px;display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#787b86">RSI(14)</span><span>${d.rsi}${d.rsi>=70?' ⚠':''}</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#787b86">MA배열</span><span style="color:${d.ma==='정배열'?'#4fc07a':'#e04f4f'}">${d.ma}</span></div>
+            ${d.entry ? `<div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#787b86">진입가</span><span>${d.entry}</span></div>` : ''}
+          </div>
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid #2a2e39;display:flex;gap:6px">
+            <div style="flex:1;text-align:center"><div style="font-size:9px;color:#555;margin-bottom:2px">목표</div><div style="font-size:11px;font-weight:600;color:#4fc07a">${d.target}</div></div>
+            <div style="flex:1;text-align:center"><div style="font-size:9px;color:#555;margin-bottom:2px">손절</div><div style="font-size:11px;font-weight:600;color:#e04f4f">${d.stop}</div></div>
+            <div style="flex:1;text-align:center"><div style="font-size:9px;color:#555;margin-bottom:2px">손익비</div><div style="font-size:11px;color:#d1d4dc">${d.rr}</div></div>
+          </div>
+        </div>`;
+      }).join('')}</div>`;
+  });
+}
+
+function plRenderTable() {
+  const rows = plFilteredData();
+  const stageColor = { scanning:'#4fa3e0', watchlist:'#4fc07a', position:'#e04f4f' };
+  const stageBg    = { scanning:'#1e3a5f', watchlist:'#1a3a28', position:'#3a1a1a' };
+  document.getElementById('pl-table-body').innerHTML = rows.map(d => {
+    const changePos = parseFloat(d.change) >= 0;
+    return `<tr class="pl-tbl-row">
+      <td style="font-weight:700;color:#fff">${d.ticker}</td>
+      <td style="color:#9a9da6">${d.name}</td>
+      <td><span style="background:${stageBg[d.stage]};color:${stageColor[d.stage]};font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px">${plStageLabel(d.stage)}</span></td>
+      <td style="font-weight:600">${d.price}</td>
+      <td style="color:${changePos?'#f23645':'#2962ff'}">${changePos?'▲':'▼'} ${d.change}%</td>
+      <td>${d.rsi}${plRsiBar(d.rsi)}</td>
+      <td style="color:${d.ma==='정배열'?'#4fc07a':'#e04f4f'}">${d.ma}</td>
+      <td style="color:#4fc07a">${d.target}</td>
+      <td style="color:#e04f4f">${d.stop}</td>
+      <td style="color:${d.stage==='position'?'#4fa3e0':'#d1d4dc'}">${d.rr}</td>
+      <td><div style="display:flex;gap:4px">
+        <button class="btn-ghost" style="font-size:10px;padding:3px 8px" onclick="navigate('#setup')">차트</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function plRenderKanban() {
+  const byStage = { scanning:[], watchlist:[], position:[] };
+  plData.forEach(d => (byStage[d.stage]||[]).push(d));
+
+  ['scanning','watchlist','position'].forEach(stage => {
+    const items = byStage[stage];
+    document.getElementById('pl-k-cnt-'+stage).textContent = items.length;
+    document.getElementById('pl-k-col-'+stage).innerHTML = items.map(d => {
+      const changePos = parseFloat(d.change) >= 0;
+      return `<div class="pl-k-card">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-weight:700;color:#fff;font-size:13px">${d.ticker}</span>
+          <span style="font-size:10px;color:#787b86">${d.exch}</span>
+        </div>
+        <div style="font-size:16px;font-weight:700;color:#fff">${d.price}</div>
+        <div style="font-size:11px;color:${changePos?'#f23645':'#2962ff'};margin-bottom:8px">${changePos?'▲':'▼'} ${d.change}%</div>
+        <div style="display:flex;flex-direction:column;gap:3px;font-size:10px">
+          <div style="display:flex;justify-content:space-between"><span style="color:#555">RSI(14)</span><span style="color:${d.rsi>=70?'#f23645':'#d1d4dc'}">${d.rsi}${d.rsi>=70?' ⚠':''}</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:#555">MA배열</span><span style="color:${d.ma==='정배열'?'#4fc07a':'#e04f4f'}">${d.ma}</span></div>
+          ${d.entry?`<div style="display:flex;justify-content:space-between"><span style="color:#555">진입가</span><span>${d.entry}</span></div>`:''}
+        </div>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #2a2e39;display:flex;justify-content:space-between;font-size:10px">
+          <span style="color:#4fc07a">↑ ${d.target}</span>
+          <span style="color:#e04f4f">↓ ${d.stop}</span>
+        </div>
+      </div>`;
+    }).join('') + `<div style="border:1px dashed #2a2e39;border-radius:6px;padding:10px;text-align:center;color:#555;font-size:11px;cursor:pointer">+ 추가</div>`;
+  });
+}
+
+function initPipeline() {
+  plData = PL_MOCK; // TODO: fetch from API
+  plSwitchView(plView);
 }
 
 // ═══════════════════════════════════════════════
